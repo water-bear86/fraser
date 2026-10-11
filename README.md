@@ -62,6 +62,22 @@ BIP-39 test vector (`abandon … about` →
 | `vendor/qrcode.js`       | qrcode-generator 1.4.4 (MIT)               |
 | `vendor/english.js(.json)`| BIP-39 English wordlist (2048 words)      |
 
+## License
+
+Copyright (C) 2026 Angus Durrie.
+
+FRASER's original source code is licensed under the
+[GNU General Public License, version 3](LICENSE) (`GPL-3.0-only`).
+You may redistribute and/or modify it under version 3 of the GNU GPL
+as published by the Free Software Foundation.
+
+FRASER is provided without any warranty, including the implied warranties
+of merchantability or fitness for a particular purpose. See `LICENSE`
+for the full terms.
+
+Bundled third-party libraries and wordlists retain their original
+licenses and copyright notices.
+
 ## Donate
 
 If you found this to be useful, consider donating by sending magic internet monies to:
