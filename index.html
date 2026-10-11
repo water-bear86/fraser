@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- connect-src 'none' = the page is physically unable to send anything anywhere -->
+<!-- connect-src 'none' blocks script-initiated connections; external links are explicit navigation. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'unsafe-inline'; img-src 'self' data: file:; connect-src 'none'; form-action 'none'; base-uri 'none'">
 <title>FRASER — solana paper wallet [tui]</title>
 <style>
@@ -231,6 +231,16 @@
   .notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 28px; color: var(--mid); font-size: 12px; line-height: 1.8; }
   .notes p { margin: 0; max-width: 70ch; }
   footer.sig { text-align: center; color: var(--dim); font-size: 12px; line-height: 1.8; padding-top: 4px; }
+  .project-links {
+    display: flex; justify-content: center; flex-wrap: wrap;
+    gap: 4px 16px; margin-bottom: 10px;
+  }
+  .project-links a {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 44px; padding: 8px 10px; color: var(--mid);
+    border: 1px solid var(--line); text-decoration: none; white-space: nowrap;
+  }
+  .project-links a:hover { color: var(--hi); border-color: var(--mid); background: var(--panel); }
   .print-only { display: none; }
 
   @media (max-width: 900px) {
@@ -436,14 +446,21 @@
 └─────────┘    └─────────┘    └───────────────┘    └──────────────┘    └─────────┘
 </pre>
     <div class="notes">
-      <p><span class="dim">──</span> CSP <span class="hi">connect-src 'none'</span>: the browser itself refuses every outbound request — verified live in the system check above.</p>
+      <p><span class="dim">──</span> CSP <span class="hi">connect-src 'none'</span> blocks app network connections — verified live above. Footer links open external sites when clicked.</p>
       <p><span class="dim">──</span> zero persistence: no cookies, no localStorage, no IndexedDB, no files. CLEAR reloads the page and drops the heap.</p>
       <p><span class="dim">──</span> air-gap mode: save this folder to a USB stick and open <span class="hi">index.html</span> on a live-booted machine — no build step, no install, no network needed, ever.</p>
       <p><span class="dim">──</span> before generating on this machine: wifi off · <span class="hi">caffeinate -dims</span> · FileVault on · quit the browser when done.</p>
     </div>
   </section>
 
-  <footer class="sig">fraser [tui] · buildless · open source · tweetnacl (public domain) + qrcode-generator (MIT)</footer>
+  <footer class="sig">
+    <nav class="project-links" aria-label="FRASER links">
+      <a href="https://github.com/water-bear86/fraser" target="_blank" rel="noopener noreferrer">GITHUB<span class="sr-only"> (opens in a new tab)</span></a>
+      <a href="https://x.com/AngusDurrie" target="_blank" rel="noopener noreferrer">X · @AngusDurrie<span class="sr-only"> (opens in a new tab)</span></a>
+      <a href="https://github.com/water-bear86/fraser/issues" target="_blank" rel="noopener noreferrer">SUPPORT<span class="sr-only"> (opens in a new tab)</span></a>
+    </nav>
+    fraser [tui] · buildless · open source · tweetnacl (public domain) + qrcode-generator (MIT)
+  </footer>
 </main>
 
 <div class="keybar">
