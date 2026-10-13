@@ -1,15 +1,17 @@
-/* FRASER paper wallet — TUI wiring. All state lives in memory only. */
+/* FRASER paper wallet: TUI wiring. All state lives in memory only. */
 (function () {
   'use strict';
 
-  var W = globalThis.SolletWallet;
-  var current = null;      // the generated wallet, memory only
+  var W = globalThis.FraserWallet;
+  var current = null;      // the generated multichain wallet, memory only
+  var selectedChain = 'sol';
   var revealed = false;
   var strength = 256;      // 24 words
   var account = 0;
   var busy = false;
   var wakeLock = null;
   var systemChecks = null;
+  var CHAIN_ORDER = ['sol', 'eth', 'btc'];
 
   function $(id) { return document.getElementById(id); }
   function esc(s) {
@@ -71,8 +73,8 @@
     var bootNet = $('bootNet');
     if (bootNet) {
       bootNet.innerHTML = navigator.onLine
-        ? fmtLine('WARN', 'network', 'ONLINE — disconnect before generating')
-        : fmtLine('OK', 'network', 'offline — ideal');
+        ? fmtLine('WARN', 'network', 'ONLINE. disconnect before generating')
+        : fmtLine('OK', 'network', 'offline, ideal');
     }
     updateCheckSummary();
   }
@@ -116,7 +118,9 @@
     checks.push([!!(globalThis.crypto && globalThis.crypto.subtle) ? 'OK' : 'FAIL',
       'webcrypto', 'SubtleCrypto available']);
     checks.push([typeof nacl !== 'undefined' ? 'OK' : 'FAIL',
-      'ed25519', 'tweetnacl loaded']);
+      'ed25519', 'tweetnacl loaded (SOL)']);
+    checks.push([typeof keccak256 !== 'undefined' ? 'OK' : 'FAIL',
+      'keccak-256', 'js-sha3 loaded (ETH), secp256k1 built in (ETH+BTC)']);
     checks.push([(typeof BIP39_ENGLISH !== 'undefined' && BIP39_ENGLISH.length === 2048) ? 'OK' : 'FAIL',
       'wordlist', 'BIP-39 english, 2048 words']);
 
@@ -125,7 +129,7 @@
       .then(function () { return false; })
       .catch(function () { return true; });
     checks.push([cspBlocked ? 'OK' : 'FAIL', 'csp firewall',
-      cspBlocked ? "probe blocked — connect-src 'none' enforced" : 'PROBE ESCAPED — do not use this build']);
+      cspBlocked ? "probe blocked: connect-src 'none' enforced" : 'PROBE ESCAPED. do not use this build']);
 
     // fraser writes nothing; anything found here is foreign state from other
     // apps on this origin (localhost cookies are shared across ports)
@@ -137,12 +141,12 @@
       });
       Object.keys(localStorage).forEach(function (k) { leftovers.push('localStorage:' + k); });
       Object.keys(sessionStorage).forEach(function (k) { leftovers.push('sessionStorage:' + k); });
-    } catch (e) { /* storage blocked entirely — even better */ }
+    } catch (e) { /* storage blocked entirely, even better */ }
     checks.push(leftovers.length === 0
-      ? ['OK', 'persistence', 'none — no cookies, no storage, no disk']
+      ? ['OK', 'persistence', 'none: no cookies, no storage, no disk']
       : ['WARN', 'persistence', 'foreign state on this origin (not fraser): ' +
           leftovers.slice(0, 3).join(', ') + (leftovers.length > 3 ? ' +' + (leftovers.length - 3) + ' more' : '') +
-          ' — file:// avoids shared localhost state']);
+          '. file:// avoids shared localhost state']);
 
     systemChecks = checks;
     updateCheckSummary();
@@ -159,7 +163,7 @@
   }
 
   // ------------------------------------------------------------- ascii QR
-  // Half-block rendering, dark modules on a light box — same trick as
+  // Half-block rendering, dark modules on a light box, same trick as
   // `qrencode -t ANSIUTF8`, and scanners still read it.
   function asciiQr(text) {
     var qr = globalThis.qrcode(0, 'M');
@@ -221,11 +225,12 @@
       ['OK', 'entropy', strength + ' bits from CSPRNG'],
       ['OK', 'mnemonic', (strength === 256 ? 24 : 12) + ' words, checksum embedded'],
       ['OK', 'seed', 'PBKDF2-SHA512, 2048 rounds'],
-      ['OK', 'derive', "m/44'/501'/" + account + "'/0' (SLIP-0010)"],
-      ['OK', 'keypair', 'ed25519']
+      ['OK', 'sol', "m/44'/501'/" + account + "'/0' (SLIP-0010 ed25519)"],
+      ['OK', 'eth', "m/44'/60'/0'/0/" + account + ' (BIP-32 secp256k1)'],
+      ['OK', 'btc', "m/84'/0'/0'/0/" + account + ' (BIP-84 native segwit)']
     ];
 
-    W.generateWallet(strength, account).then(function (wallet) {
+    W.generateMultichainWallet(strength, account).then(function (wallet) {
       current = wallet;
       typeLines(log, steps, 80, function () {
         renderWallet(wallet);
@@ -247,14 +252,52 @@
 
   // -------------------------------------------------------------- render
   var REDACT_WORD = '██████';
-  function redactB58(s) { return '█'.repeat(24) + '  <hidden — press r>'; }
+  function redactKey() { return '█'.repeat(24) + '  <hidden, press r>'; }
+
+  function renderChainFocus() {
+    if (!current) return;
+    var chain = current.chains[selectedChain];
+    document.querySelectorAll('.chain-tab').forEach(function (tab) {
+      tab.setAttribute('aria-pressed', tab.dataset.chain === selectedChain ? 'true' : 'false');
+    });
+    $('chainNote').textContent = chain.name;
+    $('addressQr').textContent = asciiQr(chain.uriPrefix + chain.address);
+    $('addressText').textContent = chain.address;
+    $('pathText').textContent = chain.path;
+
+    var all = $('allAddresses');
+    all.innerHTML = '';
+    CHAIN_ORDER.forEach(function (id) {
+      var c = current.chains[id];
+      var row = document.createElement('div');
+      row.className = 'addr-row' + (id === selectedChain ? ' active' : '');
+      row.innerHTML = '<span class="sym">' + esc(c.symbol) + '</span><span class="a">' + esc(c.address) + '</span>';
+      all.appendChild(row);
+    });
+    renderChainKeys();
+  }
+
+  // Secrets only enter the visible DOM while revealed; hiding puts blocks back.
+  function renderChainKeys() {
+    if (!current) return;
+    var chain = current.chains[selectedChain];
+    var wrap = $('chainKeys');
+    wrap.innerHTML = '';
+    chain.keys.forEach(function (key) {
+      var h = document.createElement('h3');
+      h.className = 'sec';
+      h.innerHTML = 'PRIVATE KEY <span class="dim">' + esc(chain.symbol.toLowerCase() + ' · ' + key.label) + '</span>';
+      var line = document.createElement('div');
+      line.className = revealed ? 'keyline' : 'keyline redacted';
+      line.textContent = revealed ? key.value : redactKey();
+      wrap.appendChild(h);
+      wrap.appendChild(line);
+    });
+  }
 
   function renderWallet(wallet) {
     $('result').style.display = 'block';
-    $('addressText').textContent = wallet.address;
-    $('pathText').textContent = wallet.path;
-    $('addressQr').textContent = asciiQr('solana:' + wallet.address);
-
+    selectedChain = 'sol';
     var list = $('wordsList');
     list.innerHTML = '';
     wallet.mnemonic.split(' ').forEach(function (_, i) {
@@ -269,12 +312,8 @@
       li.appendChild(w);
       list.appendChild(li);
     });
-    $('secretB58').textContent = redactB58();
-    $('secretB58').className = 'keyline redacted';
-    $('secretJson').textContent = redactB58();
-    $('secretJson').className = 'keyline redacted';
     $('revealBtn').innerHTML = 'REVEAL <span class="k">(r)</span>';
-
+    renderChainFocus();
     renderPaperWallet(wallet);
     $('result').scrollIntoView({
       behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
@@ -282,7 +321,13 @@
     });
   }
 
-  // Secrets only enter the visible DOM while revealed; hiding puts blocks back.
+  document.querySelectorAll('.chain-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      selectedChain = tab.dataset.chain;
+      renderChainFocus();
+    });
+  });
+
   function setRevealed(on) {
     if (!current) return;
     revealed = on;
@@ -292,10 +337,7 @@
       el.textContent = on ? words[i] : REDACT_WORD;
       el.className = on ? 'w' : 'w redacted';
     });
-    $('secretB58').textContent = on ? current.secretKeyBase58 : redactB58();
-    $('secretB58').className = on ? 'keyline' : 'keyline redacted';
-    $('secretJson').textContent = on ? current.secretKeyJson : redactB58();
-    $('secretJson').className = on ? 'keyline' : 'keyline redacted';
+    renderChainKeys();
     $('revealBtn').innerHTML = (on ? 'HIDE' : 'REVEAL') + ' <span class="k">(r)</span>';
   }
   $('revealBtn').addEventListener('click', function () { setRevealed(!revealed); });
@@ -305,21 +347,26 @@
     var words = wallet.mnemonic.split(' ').map(function (w) {
       return '<li>' + esc(w) + '</li>';
     }).join('');
+    var chainRows = CHAIN_ORDER.map(function (id) {
+      var c = wallet.chains[id];
+      return '<div class="pw-chain">' +
+        svgQr(c.uriPrefix + c.address, 2) +
+        '<div><span class="pw-sym">' + esc(c.symbol) + '</span>' +
+        '<div class="pw-mono">' + esc(c.address) + '</div>' +
+        '<div class="pw-sub" style="margin-top:4px">' + esc(c.name) + ' · ' + esc(c.path) + '</div></div>' +
+      '</div>';
+    }).join('');
     $('paperWallet').innerHTML =
       '<div class="pw-half">' +
-        '<div class="pw-title">FRASER — Solana deposit (public)</div>' +
-        '<div class="pw-sub">Share this side freely. Funds sent here are controlled by the secret phrase below.</div>' +
-        '<div class="pw-flex">' +
-          svgQr('solana:' + wallet.address, 3) +
-          '<div><div class="pw-mono">' + esc(wallet.address) + '</div>' +
-          '<div class="pw-sub" style="margin-top:8px">Derivation path: ' + esc(wallet.path) + '</div></div>' +
-        '</div>' +
+        '<div class="pw-title">FRASER: deposit addresses (public)</div>' +
+        '<div class="pw-sub">Share this side freely. Funds sent to any of these addresses are controlled by the secret phrase below.</div>' +
+        chainRows +
       '</div>' +
       '<div class="pw-half">' +
-        '<div class="pw-title">FRASER — Secret phrase (keep hidden)</div>' +
-        '<div class="pw-sub">Anyone with these words has full, irreversible control of the funds.</div>' +
+        '<div class="pw-title">FRASER: secret phrase (keep hidden)</div>' +
+        '<div class="pw-sub">Anyone with these words has full, irreversible control of the funds on every chain.</div>' +
         '<ol class="pw-words">' + words + '</ol>' +
-        '<div class="pw-danger">Do not photograph. Do not store digitally. Restore in Phantom/Solflare with path ' + esc(wallet.path) + '.</div>' +
+        '<div class="pw-danger">Do not photograph. Do not store digitally. Restores in Phantom (SOL), MetaMask or Rabby (ETH), Sparrow or Electrum (BTC) at the paths above. Account index: ' + esc(String(wallet.account)) + '.</div>' +
         '<div class="pw-fold">▲ fold here so the secret phrase faces inward ▲</div>' +
       '</div>';
   }
@@ -346,12 +393,17 @@
         termLine(out, 'FAIL', 'checksum', 'not a valid BIP-39 phrase (bad word or checksum)');
         return null;
       }
-      return W.keypairFromMnemonic(phrase, account).then(function (wallet) {
-        termLine(out, 'OK', 'checksum', 'valid BIP-39 phrase');
-        termLine(out, 'OK', 'derived', wallet.path);
-        var addr = document.createElement('span');
-        addr.innerHTML = 'address: <span class="tag-ok" id="verifyAddress">' + esc(wallet.address) + '</span>\n';
-        out.appendChild(addr);
+      return W.multichainFromMnemonic(phrase, account).then(function (wallet) {
+        termLine(out, 'OK', 'checksum', 'valid BIP-39 phrase · account ' + account);
+        CHAIN_ORDER.forEach(function (id) {
+          var c = wallet.chains[id];
+          var line = document.createElement('span');
+          line.className = 'term-entry';
+          line.innerHTML = '<span class="term-line"><span class="term-tag tag-ok">[OK]</span>' +
+            '<span class="term-label">' + esc(c.symbol.toLowerCase()) + '</span>' +
+            '<span class="term-detail verify-address hi" data-chain="' + esc(id) + '">' + esc(c.address) + '</span></span>\n';
+          out.appendChild(line);
+        });
       });
     }).catch(function (err) {
       termLine(out, 'FAIL', 'error', String(err && err.message || err));
@@ -374,6 +426,9 @@
       case 'p': if (current) { e.preventDefault(); window.print(); } break;
       case 'c': if (current) { e.preventDefault(); $('clearBtn').click(); } break;
       case 'v': e.preventDefault(); $('verifyInput').focus(); break;
+      case '1': if (current) { selectedChain = 'sol'; renderChainFocus(); } break;
+      case '2': if (current) { selectedChain = 'eth'; renderChainFocus(); } break;
+      case '3': if (current) { selectedChain = 'btc'; renderChainFocus(); } break;
     }
   });
 

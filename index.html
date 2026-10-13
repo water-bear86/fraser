@@ -5,7 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- connect-src 'none' blocks script-initiated connections; external links are explicit navigation. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'unsafe-inline'; img-src 'self' data: file:; connect-src 'none'; form-action 'none'; base-uri 'none'">
-<title>FRASER — solana paper wallet [tui]</title>
+<title>FRASER :: multichain paper wallet [tui]</title>
+<meta name="description" content="Generate. Print. Fold. Paper wallets for SOL, ETH and BTC, created entirely in your browser. No disk, no network, no build step. Works air-gapped from a USB stick.">
+<!-- social preview card. og.png lives at the repo root, served by GitHub Pages at fraser.lol. -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://fraser.lol/">
+<meta property="og:title" content="FRASER :: multichain paper wallet">
+<meta property="og:description" content="Generate. Print. Fold. Paper wallets for SOL, ETH and BTC, created entirely in your browser. No disk, no network, no build step.">
+<meta property="og:image" content="https://fraser.lol/og.png">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta property="og:image:alt" content="FRASER terminal interface: multichain paper wallet for SOL, ETH and BTC">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FRASER :: multichain paper wallet">
+<meta name="twitter:description" content="Generate. Print. Fold. Paper wallets for SOL, ETH and BTC, created entirely in your browser. No disk, no network, no build step.">
+<meta name="twitter:image" content="https://fraser.lol/og.png">
+<meta name="twitter:creator" content="@AngusDurrie">
 <style>
   :root {
     color-scheme: dark;
@@ -187,6 +202,19 @@
 
   /* --------------------------------------------------------- results */
   #result { display: none; margin-top: 24px; border-top: 1px solid var(--line); padding-top: 24px; scroll-margin-top: 24px; }
+  .chain-tabs { display: flex; align-items: center; gap: 4px; margin-bottom: 20px; padding: 4px; background: var(--input); border: 1px solid var(--line); }
+  .chain-tab {
+    cursor: pointer; min-height: 38px; padding: 6px 16px;
+    color: var(--mid); background: transparent; border: 1px solid transparent;
+    font-size: 12px; font-weight: 600; letter-spacing: .06em;
+  }
+  .chain-tab:hover { color: var(--hi); }
+  .chain-tab[aria-pressed="true"] { color: var(--hi); background: var(--bar-bg); border-color: var(--line); }
+  .chain-note { margin-left: auto; padding-right: 8px; color: var(--dim); font-size: 12px; }
+  .addr-row { display: flex; gap: 10px; align-items: baseline; padding: 2px 0; }
+  .addr-row .sym { color: var(--dim); min-width: 4ch; font-size: 12px; }
+  .addr-row .a { color: var(--fg); overflow-wrap: anywhere; min-width: 0; font-size: 12px; }
+  .addr-row.active .a { color: var(--hi); }
   .result-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 24px; align-items: start; }
   pre.qr {
     margin: 0; line-height: 1; letter-spacing: 0; font-size: 9px;
@@ -313,6 +341,9 @@
     #paperWallet .pw-title { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
     #paperWallet .pw-sub { font-size: 12px; color: #333; margin-bottom: 14px; }
     #paperWallet .pw-flex { display: flex; gap: 24px; align-items: flex-start; }
+    #paperWallet .pw-chain { display: flex; gap: 18px; align-items: flex-start; padding: 10px 0; border-top: 1px solid #ddd; }
+    #paperWallet .pw-chain:first-of-type { border-top: 0; }
+    #paperWallet .pw-sym { font-weight: 700; min-width: 44px; font-size: 14px; }
     #paperWallet .pw-mono { font-family: "Courier New", monospace; font-size: 13px; word-break: break-all; }
     #paperWallet .pw-words { columns: 3; font-family: "Courier New", monospace; font-size: 13px; margin: 0; padding-left: 20px; }
     #paperWallet .pw-words li { break-inside: avoid; margin-bottom: 3px; }
@@ -326,7 +357,7 @@
 <div class="topbar">
   <span class="brand">FRASER</span>
   <span class="sep" aria-hidden="true">│</span>
-  <span class="mid">solana paper wallet</span>
+  <span class="mid">multichain paper wallet</span>
   <span class="sep" aria-hidden="true">│</span>
   <span class="dim privacy-label">keys never touch disk or network</span>
   <span class="right">
@@ -338,7 +369,7 @@
 <main>
 <header class="masthead">
 <div class="brand-lockup">
-<h1 class="sr-only">FRASER — Solana Paper Wallet</h1>
+<h1 class="sr-only">FRASER: Multichain Paper Wallet</h1>
 <pre class="banner" aria-hidden="true">███████╗ ██████╗   █████╗  ███████╗ ███████╗ ██████╗
 ██╔════╝ ██╔══██╗ ██╔══██╗ ██╔════╝ ██╔════╝ ██╔══██╗
 █████╗   ██████╔╝ ███████║ ███████╗ █████╗   ██████╔╝
@@ -348,9 +379,9 @@
 <p class="brand-definition">Foldable Recovery And Seed Export Renderer</p>
 </div>
 <div class="masthead-meta">
-  <p class="product-name">paper wallet generator</p>
-  <p>m/44'/501'/n'/0'</p>
-  <p>phantom/solflare compatible</p>
+  <p class="product-name">multichain paper wallet</p>
+  <p>SOL · ETH · BTC</p>
+  <p>one phrase restores all chains</p>
 </div>
 </header>
 
@@ -387,28 +418,33 @@
     <pre class="term" id="genLog" role="status" aria-live="polite"></pre>
 
     <div id="result" role="region" aria-label="Generated wallet">
+      <div class="chain-tabs" role="group" aria-label="Select chain">
+        <button type="button" class="chain-tab" data-chain="sol" aria-pressed="true">SOL</button>
+        <button type="button" class="chain-tab" data-chain="eth" aria-pressed="false">ETH</button>
+        <button type="button" class="chain-tab" data-chain="btc" aria-pressed="false">BTC</button>
+        <span class="chain-note" id="chainNote"></span>
+      </div>
       <div class="result-grid">
         <div>
           <pre class="qr" id="addressQr"></pre>
-          <div class="qr-cap">deposit address — public, safe to share</div>
+          <div class="qr-cap">deposit address · public, safe to share</div>
         </div>
         <div class="kv">
           <h3>ADDRESS</h3>
           <div class="val" id="addressText"></div>
           <h3>DERIVATION PATH</h3>
           <div class="val plain" id="pathText"></div>
+          <h3>ALL CHAINS</h3>
+          <div class="val plain" id="allAddresses"></div>
           <h3>STATUS</h3>
-          <div class="val plain">in memory only — <span class="amber">not saved anywhere</span></div>
+          <div class="val plain">in memory only · <span class="amber">not saved anywhere</span></div>
         </div>
       </div>
 
-      <h3 class="sec">SECRET PHRASE <span class="amber">— anyone holding these words controls the funds</span></h3>
+      <h3 class="sec">SECRET PHRASE <span class="amber">anyone holding these words controls the funds on every chain</span></h3>
       <ol class="words" id="wordsList"></ol>
 
-      <h3 class="sec">PRIVATE KEY <span class="dim">base58 / phantom import</span></h3>
-      <div class="keyline" id="secretB58"></div>
-      <h3 class="sec">PRIVATE KEY <span class="dim">json / solana-keygen</span></h3>
-      <div class="keyline" id="secretJson"></div>
+      <div id="chainKeys"></div>
 
       <div class="row-actions">
         <button class="btn" id="revealBtn">REVEAL <span class="k">(r)</span></button>
@@ -424,7 +460,7 @@
       <h2 class="ptitle" id="verifyTitle">[ VERIFY PHRASE ]</h2>
       <span class="pcorner">v</span>
     </header>
-    <div class="verify-description" id="verifyDescription"><span class="prompt">verify&gt;</span> re-derive the address from a written phrase to check a printed wallet — local, like everything here</div>
+    <div class="verify-description" id="verifyDescription"><span class="prompt">verify&gt;</span> re-derive all three addresses from a written phrase to check a printed wallet. local, like everything here</div>
     <label class="sr-only" for="verifyInput">Secret phrase to verify</label>
     <textarea id="verifyInput" aria-describedby="verifyDescription" placeholder="paste or type the secret phrase…" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
     <div class="row-actions">
@@ -440,15 +476,16 @@
       <span class="pcorner">man fraser</span>
     </header>
 <pre class="pipe">
-┌─────────┐    ┌─────────┐    ┌───────────────┐    ┌──────────────┐    ┌─────────┐
-│ entropy │───▶│ BIP-39  │───▶│ PBKDF2-SHA512 │───▶│  SLIP-0010   │───▶│ ed25519 │
-│ CSPRNG  │    │ phrase  │    │  2048 rounds  │    │ m/44'/501'/… │    │ keypair │
-└─────────┘    └─────────┘    └───────────────┘    └──────────────┘    └─────────┘
+┌─────────┐    ┌─────────┐    ┌───────────────┐    ┌──────────────────────────────────┐
+│ entropy │───▶│ BIP-39  │───▶│ PBKDF2-SHA512 │───▶│ SLIP-0010 ed25519   ──▶ SOL      │
+│ CSPRNG  │    │ phrase  │    │  2048 rounds  │    │ BIP-32 secp256k1    ──▶ ETH/EVM  │
+└─────────┘    └─────────┘    └───────────────┘    │ BIP-84 segwit (v0)  ──▶ BTC      │
+                                                   └──────────────────────────────────┘
 </pre>
     <div class="notes">
-      <p><span class="dim">──</span> CSP <span class="hi">connect-src 'none'</span> blocks app network connections — verified live above. Footer links open external sites when clicked.</p>
+      <p><span class="dim">──</span> CSP <span class="hi">connect-src 'none'</span> blocks app network connections, verified live above. Footer links open external sites when clicked.</p>
       <p><span class="dim">──</span> zero persistence: no cookies, no localStorage, no IndexedDB, no files. CLEAR reloads the page and drops the heap.</p>
-      <p><span class="dim">──</span> air-gap mode: save this folder to a USB stick and open <span class="hi">index.html</span> on a live-booted machine — no build step, no install, no network needed, ever.</p>
+      <p><span class="dim">──</span> air-gap mode: save this folder to a USB stick and open <span class="hi">index.html</span> on a live-booted machine. no build step, no install, no network needed, ever.</p>
       <p><span class="dim">──</span> before generating on this machine: wifi off · <span class="hi">caffeinate -dims</span> · FileVault on · quit the browser when done.</p>
     </div>
   </section>
@@ -459,7 +496,7 @@
       <a href="https://x.com/AngusDurrie" target="_blank" rel="noopener noreferrer">X · @AngusDurrie<span class="sr-only"> (opens in a new tab)</span></a>
       <a href="https://github.com/water-bear86/fraser/issues" target="_blank" rel="noopener noreferrer">SUPPORT<span class="sr-only"> (opens in a new tab)</span></a>
     </nav>
-    fraser [tui] · buildless · open source · tweetnacl (public domain) + qrcode-generator (MIT)
+    fraser [tui] · buildless · open source · tweetnacl (public domain) + qrcode-generator, js-sha3 (MIT)
   </footer>
 </main>
 
@@ -469,13 +506,14 @@
   <span><b>p</b>print</span>
   <span><b>c</b>clear</span>
   <span><b>v</b>verify</span>
-  <span class="terminal-id">fraser tty1 — local only</span>
+  <span class="terminal-id">fraser tty1 · local only</span>
 </div>
 
 <!-- print-only paper wallet, populated at generation time -->
 <div class="print-only" id="paperWallet"></div>
 
 <script src="vendor/nacl-fast.min.js"></script>
+<script src="vendor/sha3.min.js"></script>
 <script src="vendor/qrcode.js"></script>
 <script src="vendor/english.js"></script>
 <script src="wallet.js"></script>

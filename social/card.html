@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FRASER og card</title>
+<style>
+  :root {
+    --bg: #080e0b;
+    --panel: #0d1711;
+    --fg: #c5d9cc;
+    --hi: #98f5b0;
+    --mid: #a0c2ab;
+    --dim: #8da794;
+    --line: #2b4333;
+    --amber: #f4c77f;
+    --bar-bg: #101b14;
+    --qr-bg: #f2f7f2;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", "Courier New", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    display: flex;
+    flex-direction: column;
+  }
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 2px, transparent 2px 6px);
+  }
+  .topbar, .keybar {
+    background: var(--bar-bg);
+    display: flex; align-items: center; gap: 24px;
+    padding: 16px 44px; font-size: 17px;
+  }
+  .topbar { border-bottom: 1px solid var(--line); }
+  .keybar { border-top: 1px solid var(--line); }
+  .brand { color: var(--hi); font-weight: 700; letter-spacing: .14em; font-size: 19px; }
+  .sep { color: var(--dim); }
+  .dim { color: var(--dim); }
+  .mid { color: var(--mid); }
+  .hi { color: var(--hi); }
+  .amber { color: var(--amber); }
+  .right { margin-left: auto; }
+  .keybar b {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 30px; height: 30px; margin-right: 9px;
+    color: var(--hi); border: 1px solid var(--line); font-weight: 400;
+  }
+  .keybar > span { color: var(--mid); margin-right: 26px; }
+  main {
+    flex: 1; display: flex; align-items: center; gap: 56px;
+    padding: 0 64px;
+  }
+  .lockup { flex: 1; min-width: 0; }
+  pre.banner {
+    color: var(--hi); font-size: 24px; line-height: 1.12; font-weight: 400;
+  }
+  .definition { color: var(--mid); font-size: 19px; margin-top: 18px; letter-spacing: .02em; }
+  .tagline { color: var(--fg); font-size: 27px; font-weight: 600; margin-top: 14px; }
+  .chains { display: flex; gap: 12px; margin-top: 26px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--bar-bg); color: var(--hi);
+    font-size: 19px; font-weight: 700; letter-spacing: .08em; padding: 10px 22px;
+  }
+  .chip .path { display: block; color: var(--dim); font-size: 12px; font-weight: 400; letter-spacing: 0; margin-top: 4px; }
+  .checks { margin-top: 28px; font-size: 16px; line-height: 1.9; }
+  .checks .tag { color: var(--hi); font-weight: 600; }
+  .qr-side { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  pre.qr {
+    line-height: 1; letter-spacing: 0; font-size: 13px;
+    background: var(--qr-bg); color: #0a0a0a; padding: 18px;
+  }
+  .qr-cap { color: var(--dim); font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">FRASER</span>
+  <span class="sep">│</span>
+  <span class="mid">multichain paper wallet</span>
+  <span class="sep">│</span>
+  <span class="dim">keys never touch disk or network</span>
+  <span class="right"><span class="dim">NET:</span> <span class="hi">● OFFLINE</span></span>
+</div>
+
+<main>
+  <div class="lockup">
+<pre class="banner">███████╗ ██████╗   █████╗  ███████╗ ███████╗ ██████╗
+██╔════╝ ██╔══██╗ ██╔══██╗ ██╔════╝ ██╔════╝ ██╔══██╗
+█████╗   ██████╔╝ ███████║ ███████╗ █████╗   ██████╔╝
+██╔══╝   ██╔══██╗ ██╔══██║ ╚════██║ ██╔══╝   ██╔══██╗
+██║      ██║  ██║ ██║  ██║ ███████║ ███████╗ ██║  ██║
+╚═╝      ╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═╝</pre>
+    <div class="definition">Foldable Recovery And Seed Export Renderer</div>
+    <div class="tagline">Generate. Print. Fold.</div>
+    <div class="chains">
+      <span class="chip">SOL<span class="path">m/44'/501'/n'/0'</span></span>
+      <span class="chip">ETH<span class="path">m/44'/60'/0'/0/n</span></span>
+      <span class="chip">BTC<span class="path">m/84'/0'/0'/0/n</span></span>
+    </div>
+    <div class="checks">
+      <div><span class="tag">[OK]</span> one phrase, generated entirely in your browser</div>
+      <div><span class="tag">[OK]</span> no disk, no network: csp connect-src 'none'</div>
+      <div><span class="tag">[OK]</span> air-gap ready: runs from a USB stick, no build step</div>
+    </div>
+  </div>
+  <div class="qr-side">
+    <pre class="qr" id="qr"></pre>
+    <div class="qr-cap">github.com/water-bear86/fraser</div>
+  </div>
+</main>
+
+<div class="keybar">
+  <span><b>g</b>generate</span>
+  <span><b>r</b>reveal</span>
+  <span><b>p</b>print</span>
+  <span><b>c</b>clear</span>
+  <span><b>v</b>verify</span>
+  <span class="right dim" style="margin-right:0">fraser tty1 · local only</span>
+</div>
+
+<script src="../vendor/qrcode.js"></script>
+<script>
+  (function () {
+    var qr = qrcode(0, 'M');
+    qr.addData('https://github.com/water-bear86/fraser');
+    qr.make();
+    var n = qr.getModuleCount();
+    var lines = [];
+    for (var y = 0; y < n; y += 2) {
+      var row = '';
+      for (var x = 0; x < n; x++) {
+        var top = qr.isDark(y, x);
+        var bot = y + 1 < n ? qr.isDark(y + 1, x) : false;
+        row += top && bot ? '█' : top ? '▀' : bot ? '▄' : ' ';
+      }
+      lines.push(row);
+    }
+    document.getElementById('qr').textContent = lines.join('\n');
+  })();
+</script>
+</body>
+</html>
