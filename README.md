@@ -1,4 +1,4 @@
-# FRASER — Solana Paper Wallet
+# FRASER: Multichain Paper Wallet
 
 **Foldable Recovery And Seed Export Renderer.**
 
