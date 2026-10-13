@@ -8,6 +8,9 @@ FRASER generates paper wallets for **Solana, Ethereum/EVM, and Bitcoin**
 from one secret phrase, **entirely in the browser**. Nothing is ever
 written to disk, stored, or transmitted.
 
+New to cold storage? Start with the **[user guide](GUIDE.md)**: offline
+setup, funding, getting back out, cleanup, and how many copies to make.
+
 ## Run it
 
 ```sh
