@@ -8,10 +8,15 @@
   var revealed = false;
   var strength = 256;      // 24 words
   var account = 0;
+  var chainSel = 'all';    // 'all' | 'sol' | 'eth' | 'btc'
   var busy = false;
   var wakeLock = null;
   var systemChecks = null;
   var CHAIN_ORDER = ['sol', 'eth', 'btc'];
+
+  function activeChains() {
+    return current ? CHAIN_ORDER.filter(function (id) { return current.chains[id]; }) : [];
+  }
 
   function $(id) { return document.getElementById(id); }
   function esc(s) {
@@ -200,6 +205,17 @@
   }
   $('opt24').addEventListener('click', function () { setStrength(256); });
   $('opt12').addEventListener('click', function () { setStrength(128); });
+  function setChainSel(sel) {
+    chainSel = sel;
+    document.querySelectorAll('.chain-opt').forEach(function (btn) {
+      var on = btn.dataset.chains === sel;
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.querySelector('.k').textContent = on ? '(●)' : '( )';
+    });
+  }
+  document.querySelectorAll('.chain-opt').forEach(function (btn) {
+    btn.addEventListener('click', function () { setChainSel(btn.dataset.chains); });
+  });
   $('accDown').addEventListener('click', function () {
     account = Math.max(0, account - 1);
     $('accVal').textContent = account;
@@ -217,20 +233,24 @@
     $('generateBtn').disabled = true;
     $('generateBtn').setAttribute('aria-busy', 'true');
     $('generateLabel').textContent = 'GENERATING…';
+    var ids = chainSel === 'all' ? CHAIN_ORDER.slice() : [chainSel];
     var log = $('genLog');
     log.textContent = '';
-    termLine(log, null, '$ fraser generate --words ' + (strength === 256 ? 24 : 12) + ' --account ' + account);
+    termLine(log, null, '$ fraser generate --words ' + (strength === 256 ? 24 : 12) +
+      ' --account ' + account + ' --chains ' + ids.join(','));
 
+    var deriveSteps = {
+      sol: ['OK', 'sol', "m/44'/501'/" + account + "'/0' (SLIP-0010 ed25519)"],
+      eth: ['OK', 'eth', "m/44'/60'/0'/0/" + account + ' (BIP-32 secp256k1)'],
+      btc: ['OK', 'btc', "m/84'/0'/0'/0/" + account + ' (BIP-84 native segwit)']
+    };
     var steps = [
       ['OK', 'entropy', strength + ' bits from CSPRNG'],
       ['OK', 'mnemonic', (strength === 256 ? 24 : 12) + ' words, checksum embedded'],
-      ['OK', 'seed', 'PBKDF2-SHA512, 2048 rounds'],
-      ['OK', 'sol', "m/44'/501'/" + account + "'/0' (SLIP-0010 ed25519)"],
-      ['OK', 'eth', "m/44'/60'/0'/0/" + account + ' (BIP-32 secp256k1)'],
-      ['OK', 'btc', "m/84'/0'/0'/0/" + account + ' (BIP-84 native segwit)']
-    ];
+      ['OK', 'seed', 'PBKDF2-SHA512, 2048 rounds']
+    ].concat(ids.map(function (id) { return deriveSteps[id]; }));
 
-    W.generateMultichainWallet(strength, account).then(function (wallet) {
+    W.generateMultichainWallet(strength, account, ids).then(function (wallet) {
       current = wallet;
       typeLines(log, steps, 80, function () {
         renderWallet(wallet);
@@ -256,24 +276,32 @@
 
   function renderChainFocus() {
     if (!current) return;
+    var active = activeChains();
     var chain = current.chains[selectedChain];
     document.querySelectorAll('.chain-tab').forEach(function (tab) {
+      tab.style.display = current.chains[tab.dataset.chain] ? '' : 'none';
       tab.setAttribute('aria-pressed', tab.dataset.chain === selectedChain ? 'true' : 'false');
     });
-    $('chainNote').textContent = chain.name;
+    $('chainNote').textContent = chain.name + (active.length === 1 ? ' · single-chain wallet' : '');
     $('addressQr').textContent = asciiQr(chain.uriPrefix + chain.address);
     $('addressText').textContent = chain.address;
     $('pathText').textContent = chain.path;
 
+    // the combined list only earns its place when there is more than one chain
+    var multi = active.length > 1;
+    $('allAddressesHeading').style.display = multi ? '' : 'none';
     var all = $('allAddresses');
+    all.style.display = multi ? '' : 'none';
     all.innerHTML = '';
-    CHAIN_ORDER.forEach(function (id) {
-      var c = current.chains[id];
-      var row = document.createElement('div');
-      row.className = 'addr-row' + (id === selectedChain ? ' active' : '');
-      row.innerHTML = '<span class="sym">' + esc(c.symbol) + '</span><span class="a">' + esc(c.address) + '</span>';
-      all.appendChild(row);
-    });
+    if (multi) {
+      active.forEach(function (id) {
+        var c = current.chains[id];
+        var row = document.createElement('div');
+        row.className = 'addr-row' + (id === selectedChain ? ' active' : '');
+        row.innerHTML = '<span class="sym">' + esc(c.symbol) + '</span><span class="a">' + esc(c.address) + '</span>';
+        all.appendChild(row);
+      });
+    }
     renderChainKeys();
   }
 
@@ -297,7 +325,7 @@
 
   function renderWallet(wallet) {
     $('result').style.display = 'block';
-    selectedChain = 'sol';
+    selectedChain = activeChains()[0];
     var list = $('wordsList');
     list.innerHTML = '';
     wallet.mnemonic.split(' ').forEach(function (_, i) {
@@ -347,7 +375,11 @@
     var words = wallet.mnemonic.split(' ').map(function (w) {
       return '<li>' + esc(w) + '</li>';
     }).join('');
-    var chainRows = CHAIN_ORDER.map(function (id) {
+    var active = CHAIN_ORDER.filter(function (id) { return wallet.chains[id]; });
+    var restoreHints = {
+      sol: 'Phantom (SOL)', eth: 'MetaMask or Rabby (ETH)', btc: 'Sparrow or Electrum (BTC)'
+    };
+    var chainRows = active.map(function (id) {
       var c = wallet.chains[id];
       return '<div class="pw-chain">' +
         svgQr(c.uriPrefix + c.address, 2) +
@@ -358,15 +390,17 @@
     }).join('');
     $('paperWallet').innerHTML =
       '<div class="pw-half">' +
-        '<div class="pw-title">FRASER: deposit addresses (public)</div>' +
-        '<div class="pw-sub">Share this side freely. Funds sent to any of these addresses are controlled by the secret phrase below.</div>' +
+        '<div class="pw-title">FRASER: deposit address' + (active.length > 1 ? 'es' : '') + ' (public)</div>' +
+        '<div class="pw-sub">Share this side freely. Funds sent ' + (active.length > 1 ? 'to any of these addresses' : 'here') + ' are controlled by the secret phrase below.</div>' +
         chainRows +
       '</div>' +
       '<div class="pw-half">' +
         '<div class="pw-title">FRASER: secret phrase (keep hidden)</div>' +
-        '<div class="pw-sub">Anyone with these words has full, irreversible control of the funds on every chain.</div>' +
+        '<div class="pw-sub">Anyone with these words has full, irreversible control of the funds' + (active.length > 1 ? ' on every chain' : '') + '.</div>' +
         '<ol class="pw-words">' + words + '</ol>' +
-        '<div class="pw-danger">Do not photograph. Do not store digitally. Restores in Phantom (SOL), MetaMask or Rabby (ETH), Sparrow or Electrum (BTC) at the paths above. Account index: ' + esc(String(wallet.account)) + '.</div>' +
+        '<div class="pw-danger">Do not photograph. Do not store digitally. Restores in ' +
+          active.map(function (id) { return restoreHints[id]; }).join(', ') +
+          ' at the path' + (active.length > 1 ? 's' : '') + ' above. Account index: ' + esc(String(wallet.account)) + '.</div>' +
         '<div class="pw-fold">▲ fold here so the secret phrase faces inward ▲</div>' +
       '</div>';
   }
@@ -426,9 +460,9 @@
       case 'p': if (current) { e.preventDefault(); window.print(); } break;
       case 'c': if (current) { e.preventDefault(); $('clearBtn').click(); } break;
       case 'v': e.preventDefault(); $('verifyInput').focus(); break;
-      case '1': if (current) { selectedChain = 'sol'; renderChainFocus(); } break;
-      case '2': if (current) { selectedChain = 'eth'; renderChainFocus(); } break;
-      case '3': if (current) { selectedChain = 'btc'; renderChainFocus(); } break;
+      case '1': if (current && current.chains.sol) { selectedChain = 'sol'; renderChainFocus(); } break;
+      case '2': if (current && current.chains.eth) { selectedChain = 'eth'; renderChainFocus(); } break;
+      case '3': if (current && current.chains.btc) { selectedChain = 'btc'; renderChainFocus(); } break;
     }
   });
 

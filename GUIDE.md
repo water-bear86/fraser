@@ -24,7 +24,10 @@ why-and-how belongs to the docs section.
 
 ## 2. Generate and print
 
-1. Keep **24 words** selected. Press `g`.
+1. Keep **24 words** selected. Leave chains on **all chains** for one
+   combined wallet, or pick a single chain to give it a phrase of its
+   own; separate phrases can be spent later without touching each other
+   (see best practices). Press `g`.
 2. Press `p` and print the sheet.
 3. Press `r` to reveal, then hand-copy the 24 words in pen onto the
    printout, checking each word. Ink fades; pen is the backup of the
@@ -88,11 +91,15 @@ cold. So the rule is simple: **restoring = retiring.**
 5. Once the new wallet is funded and verified, destroy every copy of the
    old one.
 
-There is no safe partial exit. All three chains hang off the same
-words, so restoring the phrase in any app exposes all of them at once.
-If you only want to spend part of the funds, restore, move what you
-need, then send the remainder on every chain to a freshly generated
-wallet in the same sitting.
+A combined wallet has no safe partial exit: all three chains hang off
+the same words, so restoring the phrase in any app exposes all of them
+at once. If you only want to spend part of the funds, restore, move
+what you need, then send the remainder on every chain to a freshly
+generated wallet in the same sitting.
+
+If you want chains you can exit independently, generate single-chain
+wallets instead (the chains selector), one phrase each. Restoring one
+sheet then retires only that sheet; the others stay cold.
 
 ## 6. Best practices
 
@@ -117,6 +124,10 @@ wallet in the same sitting.
   looks degraded, verify it offline with the verify panel and reprint.
 - **Split large holdings** across two or more separate wallets so one
   lost or compromised sheet cannot take everything.
+- **Separate phrases for separate purposes.** The chains selector can
+  give each chain its own wallet with its own phrase, so spending one
+  later does not un-cold the others. More sheets to store, more
+  independence; for larger holdings this is the better default.
 - **Plan for inheritance.** One trusted person should know a copy exists
   and how to use it. Unrecoverable and uninheritable are the same word
   on different days.

@@ -32,6 +32,9 @@ machine.
     EIP-55 checksummed
   - **BTC**: BIP-84 native segwit at `m/84'/0'/0'/0/n` (Sparrow, Electrum),
     bech32 `bc1q…`
+- Chains selector: one combined wallet covering all three chains, or a
+  single-chain wallet so each chain gets its own independent phrase and
+  can be restored later without exposing the others.
 - Shows each address (+ scannable half-block QR), the phrase, and the
   private keys in wallet-import formats: base58 and `solana-keygen` JSON
   for SOL, hex for ETH, WIF for BTC.

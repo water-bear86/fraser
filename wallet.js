@@ -486,22 +486,30 @@
   }
 
   // ------------------------------------------------------- multichain API
-  async function multichainFromMnemonic(mnemonic, account, passphrase) {
+  // chainIds: optional subset like ['sol'] for a single-chain wallet whose
+  // phrase is independent of any other wallet. Default is all three.
+  async function multichainFromMnemonic(mnemonic, account, passphrase, chainIds) {
     account = account || 0;
+    var ids = chainIds && chainIds.length ? chainIds : ['sol', 'eth', 'btc'];
     var seed = await mnemonicToSeed(mnemonic, passphrase);
-    var sol = await solFromSeed(seed, account);
-    var eth = await evmFromSeed(seed, account);
-    var btc = await btcFromSeed(seed, account);
+    var chains = {};
+    for (var i = 0; i < ids.length; i++) {
+      var id = ids[i];
+      if (id === 'sol') chains.sol = await solFromSeed(seed, account);
+      else if (id === 'eth') chains.eth = await evmFromSeed(seed, account);
+      else if (id === 'btc') chains.btc = await btcFromSeed(seed, account);
+      else throw new Error('unknown chain: ' + id);
+    }
     return {
       mnemonic: normalizeMnemonic(mnemonic),
       account: account,
-      chains: { sol: sol, eth: eth, btc: btc }
+      chains: chains
     };
   }
 
-  async function generateMultichainWallet(strengthBits, account) {
+  async function generateMultichainWallet(strengthBits, account, chainIds) {
     var mnemonic = await generateMnemonic(strengthBits);
-    return multichainFromMnemonic(mnemonic, account);
+    return multichainFromMnemonic(mnemonic, account, undefined, chainIds);
   }
 
   // ---------------------------------------------------------------- wallet

@@ -413,6 +413,15 @@
           <button type="button" id="accDown" aria-label="Decrease account number">−</button><span id="accVal" aria-live="polite">0</span><button type="button" id="accUp" aria-label="Increase account number">+</button>
         </span>
       </div>
+      <div class="control-group">
+        <span class="ctl-label" id="chainsLabel">chains:</span>
+        <div class="word-choice" role="group" aria-labelledby="chainsLabel">
+          <button type="button" class="opt chain-opt" data-chains="all" aria-pressed="true"><span class="k" aria-hidden="true">(●)</span> all chains</button>
+          <button type="button" class="opt chain-opt" data-chains="sol" aria-pressed="false"><span class="k" aria-hidden="true">( )</span> solana</button>
+          <button type="button" class="opt chain-opt" data-chains="eth" aria-pressed="false"><span class="k" aria-hidden="true">( )</span> evm</button>
+          <button type="button" class="opt chain-opt" data-chains="btc" aria-pressed="false"><span class="k" aria-hidden="true">( )</span> bitcoin</button>
+        </div>
+      </div>
     </div>
     <button type="button" class="btn primary" id="generateBtn"><span aria-hidden="true">▶</span> <span class="button-label" id="generateLabel">GENERATE</span> <span class="k">(g)</span></button>
     <pre class="term" id="genLog" role="status" aria-live="polite"></pre>
@@ -434,7 +443,7 @@
           <div class="val" id="addressText"></div>
           <h3>DERIVATION PATH</h3>
           <div class="val plain" id="pathText"></div>
-          <h3>ALL CHAINS</h3>
+          <h3 id="allAddressesHeading">ALL CHAINS</h3>
           <div class="val plain" id="allAddresses"></div>
           <h3>STATUS</h3>
           <div class="val plain">in memory only · <span class="amber">not saved anywhere</span></div>
