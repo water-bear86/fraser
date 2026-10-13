@@ -8,7 +8,7 @@
   var revealed = false;
   var strength = 256;      // 24 words
   var account = 0;
-  var chainSel = 'all';    // 'all' | 'sol' | 'eth' | 'btc'
+  var chainSel = 'all';    // 'all' | array of chain ids, e.g. ['sol','btc']
   var busy = false;
   var wakeLock = null;
   var systemChecks = null;
@@ -205,16 +205,32 @@
   }
   $('opt24').addEventListener('click', function () { setStrength(256); });
   $('opt12').addEventListener('click', function () { setStrength(128); });
+  // Individual chains toggle like checkboxes; picking all three (or none)
+  // collapses to the "all chains" state automatically.
   function setChainSel(sel) {
+    if (Array.isArray(sel)) {
+      sel = CHAIN_ORDER.filter(function (id) { return sel.indexOf(id) !== -1; });
+      if (sel.length === 0 || sel.length === CHAIN_ORDER.length) sel = 'all';
+    }
     chainSel = sel;
     document.querySelectorAll('.chain-opt').forEach(function (btn) {
-      var on = btn.dataset.chains === sel;
+      var id = btn.dataset.chains;
+      var on = id === 'all'
+        ? chainSel === 'all'
+        : chainSel !== 'all' && chainSel.indexOf(id) !== -1;
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.querySelector('.k').textContent = on ? '(●)' : '( )';
     });
   }
   document.querySelectorAll('.chain-opt').forEach(function (btn) {
-    btn.addEventListener('click', function () { setChainSel(btn.dataset.chains); });
+    btn.addEventListener('click', function () {
+      var id = btn.dataset.chains;
+      if (id === 'all') { setChainSel('all'); return; }
+      var next = chainSel === 'all' ? [] : chainSel.slice();
+      var at = next.indexOf(id);
+      if (at === -1) next.push(id); else next.splice(at, 1);
+      setChainSel(next);
+    });
   });
   $('accDown').addEventListener('click', function () {
     account = Math.max(0, account - 1);
@@ -233,7 +249,7 @@
     $('generateBtn').disabled = true;
     $('generateBtn').setAttribute('aria-busy', 'true');
     $('generateLabel').textContent = 'GENERATING…';
-    var ids = chainSel === 'all' ? CHAIN_ORDER.slice() : [chainSel];
+    var ids = chainSel === 'all' ? CHAIN_ORDER.slice() : chainSel.slice();
     var log = $('genLog');
     log.textContent = '';
     termLine(log, null, '$ fraser generate --words ' + (strength === 256 ? 24 : 12) +
