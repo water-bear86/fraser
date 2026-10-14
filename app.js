@@ -243,10 +243,11 @@
 
   // -------------------------------------------------------------- generate
   function generate() {
-    if (busy) return;
+    if (busy || tourDialog.open) return;
     busy = true;
     revealed = false;
     $('generateBtn').disabled = true;
+    tourReplay.disabled = true;
     $('generateBtn').setAttribute('aria-busy', 'true');
     $('generateLabel').textContent = 'GENERATING…';
     var ids = chainSel === 'all' ? CHAIN_ORDER.slice() : chainSel.slice();
@@ -273,6 +274,7 @@
         acquireWakeLock();
         busy = false;
         $('generateBtn').disabled = false;
+        tourReplay.disabled = false;
         $('generateBtn').setAttribute('aria-busy', 'false');
         $('generateLabel').textContent = 'GENERATE';
       });
@@ -280,6 +282,7 @@
       termLine(log, 'FAIL', 'generate', String(err && err.message || err));
       busy = false;
       $('generateBtn').disabled = false;
+      tourReplay.disabled = false;
       $('generateBtn').setAttribute('aria-busy', 'false');
       $('generateLabel').textContent = 'GENERATE';
     });
@@ -461,8 +464,184 @@
   }
   $('verifyBtn').addEventListener('click', verify);
 
+  // ---------------------------------------------------------- quick tour
+  // Completion stays in the page heap: no cookies, storage, or URL flags.
+  var tourDialog = $('tourDialog');
+  var tourCard = $('tourCard');
+  var tourReplay = $('tourReplay');
+  var tourIndex = 0;
+  var tourFrame = 0;
+  var tourReturnFocus = null;
+  var tourSteps = [
+    {
+      target: $('systemCheck'), compact: $('systemCheck').querySelector('summary'),
+      title: 'Start offline',
+      text: 'Review the system checks. For a wallet you plan to fund, download FRASER and use it offline.'
+    },
+    {
+      target: $('walletControls'), compact: document.querySelector('[aria-labelledby="chainsLabel"]'),
+      title: 'Choose your wallet',
+      text: 'Choose phrase length and chains. SOL, EVM and BTC can share one phrase, or select just the chains you need.'
+    },
+    {
+      target: $('generateBtn'),
+      title: 'Generate. Print. Fold.',
+      text: 'Generate creates a new phrase. Use Reveal to read it, Print for the sheet, and Clear when finished.'
+    },
+    {
+      target: $('verifyInput'),
+      title: 'Check the paper',
+      text: 'Type the words from your paper. Compare its addresses with the derived addresses before funding the wallet.'
+    }
+  ];
+  var tourObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(queueTourPosition) : null;
+
+  function setTourRect(el, left, top, width, height) {
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+    el.style.width = Math.max(0, width) + 'px';
+    el.style.height = Math.max(0, height) + 'px';
+  }
+
+  function positionTour() {
+    if (!tourDialog.open) return;
+    var width = tourDialog.clientWidth;
+    var height = tourDialog.clientHeight;
+    var margin = 12;
+    var gap = 14;
+    var padding = 6;
+    var cardWidth = tourCard.offsetWidth;
+    var cardHeight = tourCard.offsetHeight;
+    var step = tourSteps[tourIndex];
+    var target = step.target;
+    var rect = target.getBoundingClientRect();
+    var sideFits = rect.left - padding - gap >= cardWidth + margin ||
+      width - rect.right - padding - gap >= cardWidth + margin;
+
+    // A short viewport highlights the chain group or check summary instead
+    // of forcing a large panel and the callout into the same vertical space.
+    if (!sideFits && step.compact && rect.height + cardHeight + gap + padding * 2 + margin * 2 > height) {
+      target = step.compact;
+      rect = target.getBoundingClientRect();
+    }
+    // Reflow can move the anchor off-screen without changing the step.
+    // Allow subpixel rounding at the edge so scroll events settle once.
+    if (rect.top < margin + padding - 1 || rect.bottom > height - margin - padding + 1) {
+      target.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+      rect = target.getBoundingClientRect();
+    }
+    sideFits = rect.left - padding - gap >= cardWidth + margin ||
+      width - rect.right - padding - gap >= cardWidth + margin;
+    if (!sideFits && height - rect.bottom - padding - gap < cardHeight + margin &&
+        rect.top - padding - gap < cardHeight + margin) {
+      window.scrollBy({ top: rect.top - margin - padding, behavior: 'auto' });
+      rect = target.getBoundingClientRect();
+    }
+
+    var left = Math.min(width, Math.max(0, rect.left - padding));
+    var top = Math.min(height, Math.max(0, rect.top - padding));
+    var right = Math.min(width, Math.max(left, rect.right + padding));
+    var bottom = Math.min(height, Math.max(top, rect.bottom + padding));
+    setTourRect($('tourShadeTop'), 0, 0, width, top);
+    setTourRect($('tourShadeBottom'), 0, bottom, width, height - bottom);
+    setTourRect($('tourShadeLeft'), 0, top, left, bottom - top);
+    setTourRect($('tourShadeRight'), right, top, width - right, bottom - top);
+    setTourRect($('tourSpotlight'), left, top, right - left, bottom - top);
+
+    var x = Math.min(Math.max(left, margin), width - cardWidth - margin);
+    var y;
+    if (width - right - gap >= cardWidth + margin) {
+      x = right + gap;
+      y = top + (bottom - top - cardHeight) / 2;
+    } else if (left - gap >= cardWidth + margin) {
+      x = left - gap - cardWidth;
+      y = top + (bottom - top - cardHeight) / 2;
+    } else if (height - bottom - gap >= cardHeight + margin) {
+      y = bottom + gap;
+    } else {
+      y = top - gap - cardHeight;
+    }
+    tourCard.style.left = Math.max(margin, x) + 'px';
+    tourCard.style.top = Math.max(margin, Math.min(y, height - cardHeight - margin)) + 'px';
+  }
+
+  function queueTourPosition() {
+    if (!tourDialog.open || tourFrame) return;
+    tourFrame = requestAnimationFrame(function () {
+      tourFrame = 0;
+      positionTour();
+    });
+  }
+
+  function showTourStep(index) {
+    tourIndex = index;
+    var step = tourSteps[index];
+    $('tourTitle').textContent = step.title;
+    $('tourDescription').textContent = step.text;
+    $('tourProgress').textContent = (index + 1) + ' / ' + tourSteps.length;
+    $('tourProgress').setAttribute('aria-label', 'Step ' + (index + 1) + ' of ' + tourSteps.length);
+    $('tourBack').disabled = index === 0;
+    $('tourNext').textContent = index === tourSteps.length - 1 ? 'DONE' : 'NEXT';
+    step.target.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+    if (tourObserver) {
+      tourObserver.disconnect();
+      tourObserver.observe(step.target);
+      if (step.compact) tourObserver.observe(step.compact);
+      tourObserver.observe(tourCard);
+    }
+    positionTour();
+    $('tourNext').focus({ preventScroll: true });
+  }
+
+  function cleanUpTour() {
+    document.documentElement.classList.remove('tour-active');
+    if (tourObserver) tourObserver.disconnect();
+    if (tourFrame) { cancelAnimationFrame(tourFrame); tourFrame = 0; }
+  }
+
+  function endTour() {
+    if (!tourDialog.open) return;
+    tourDialog.close();
+    cleanUpTour();
+    var focus = tourReturnFocus && tourReturnFocus !== document.body && tourReturnFocus.isConnected
+      ? tourReturnFocus : $('generateBtn');
+    focus.focus();
+  }
+
+  function startTour() {
+    if (tourDialog.open || busy) return;
+    if (typeof tourDialog.showModal !== 'function') { tourReplay.style.display = 'none'; return; }
+    tourReturnFocus = document.activeElement;
+    document.documentElement.classList.add('tour-active');
+    tourDialog.showModal();
+    showTourStep(0);
+  }
+
+  tourReplay.addEventListener('click', startTour);
+  $('tourSkip').addEventListener('click', endTour);
+  $('tourBack').addEventListener('click', function () { if (tourIndex > 0) showTourStep(tourIndex - 1); });
+  $('tourNext').addEventListener('click', function () {
+    if (tourIndex === tourSteps.length - 1) endTour(); else showTourStep(tourIndex + 1);
+  });
+  tourDialog.addEventListener('cancel', function (e) { e.preventDefault(); endTour(); });
+  tourDialog.addEventListener('close', function () { if (!tourDialog.open) cleanUpTour(); });
+  tourDialog.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'Tab') {
+      var buttons = Array.from(tourCard.querySelectorAll('button:not(:disabled)'));
+      var first = buttons[0];
+      var last = buttons[buttons.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+  window.addEventListener('resize', queueTourPosition);
+  window.addEventListener('scroll', queueTourPosition, true);
+  window.addEventListener('beforeprint', endTour);
+
   // --------------------------------------------------------------- hotkeys
   document.addEventListener('keydown', function (e) {
+    if (tourDialog.open) return;
     var t = e.target;
     var typing = t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT');
     if (typing) {
@@ -484,4 +663,5 @@
 
   updateNetBadge();
   boot();
+  startTour();
 })();

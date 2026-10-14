@@ -263,13 +263,40 @@
     display: flex; justify-content: center; flex-wrap: wrap;
     gap: 4px 16px; margin-bottom: 10px;
   }
-  .project-links a {
+  .project-links a, .project-links button {
     display: inline-flex; align-items: center; justify-content: center;
     min-height: 44px; padding: 8px 10px; color: var(--mid);
     border: 1px solid var(--line); text-decoration: none; white-space: nowrap;
+    background: transparent; cursor: pointer;
   }
-  .project-links a:hover { color: var(--hi); border-color: var(--mid); background: var(--panel); }
+  .project-links a:hover, .project-links button:hover { color: var(--hi); border-color: var(--mid); background: var(--panel); }
+  .project-links button:disabled { opacity: .5; cursor: wait; }
   .print-only { display: none; }
+
+  /* The dialog owns focus; four flat shades leave the real control visible. */
+  html.tour-active { overflow: hidden; }
+  .tour {
+    display: none; position: fixed; inset: 0; width: 100%; height: 100%;
+    max-width: none; max-height: none; margin: 0; border: 0; padding: 0;
+    overflow: hidden; background: transparent; color: var(--fg); font: inherit;
+  }
+  .tour[open] { display: block; }
+  .tour::backdrop { background: transparent; }
+  .tour-shade { position: absolute; background: rgba(2, 7, 4, .8); pointer-events: none; }
+  .tour-spotlight { position: absolute; border: 1px solid var(--hi); pointer-events: none; }
+  .tour-card {
+    position: absolute; z-index: 1; width: min(360px, calc(100% - 24px));
+    max-height: calc(100% - 24px); overflow: auto;
+    padding: 20px; border: 1px solid var(--hi); background: var(--panel);
+  }
+  .tour-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+  .tour-title { margin: 0; color: var(--hi); font-size: 16px; font-weight: 600; line-height: 1.4; }
+  .tour-progress { color: var(--dim); font-size: 12px; white-space: nowrap; }
+  .tour-description { margin: 12px 0 20px; line-height: 1.6; }
+  .tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .tour-nav { display: flex; gap: 8px; }
+  .tour-actions .btn { min-height: 44px; }
+  .tour-skip { border-color: transparent; color: var(--dim); }
 
   @media (max-width: 900px) {
     .topbar .privacy-label, .topbar > .sep { display: none; }
@@ -331,7 +358,8 @@
   @media print {
     body { background: #fff; color: #000; color-scheme: light; padding: 0; }
     body::after { display: none; }
-    .topbar, .keybar, main { display: none !important; }
+    .topbar, .keybar, main, .tour { display: none !important; }
+    html.tour-active { overflow: visible; }
     .print-only { display: block !important; }
     #paperWallet { font-family: Georgia, serif; color: #000; padding: 24px; }
     #paperWallet .pw-half {
@@ -399,7 +427,7 @@
       <h2 class="ptitle" id="createTitle">[ CREATE WALLET ]</h2>
       <span class="pcorner">g</span>
     </header>
-    <div class="controls">
+    <div class="controls" id="walletControls">
       <div class="control-group">
         <span class="ctl-label" id="phraseLabel">phrase:</span>
         <div class="word-choice" role="group" aria-labelledby="phraseLabel">
@@ -501,6 +529,7 @@
 
   <footer class="sig">
     <nav class="project-links" aria-label="FRASER links">
+      <button type="button" id="tourReplay" aria-haspopup="dialog">QUICK TOUR</button>
       <a href="https://github.com/water-bear86/fraser/blob/main/GUIDE.md" target="_blank" rel="noopener noreferrer">GUIDE<span class="sr-only"> (opens in a new tab)</span></a>
       <a href="https://github.com/water-bear86/fraser" target="_blank" rel="noopener noreferrer">GITHUB<span class="sr-only"> (opens in a new tab)</span></a>
       <a href="https://x.com/AngusDurrie" target="_blank" rel="noopener noreferrer">X · @AngusDurrie<span class="sr-only"> (opens in a new tab)</span></a>
@@ -518,6 +547,30 @@
   <span><b>v</b>verify</span>
   <span class="terminal-id">fraser tty1 · local only</span>
 </div>
+
+<dialog class="tour" id="tourDialog" aria-labelledby="tourTitle" aria-describedby="tourDescription">
+  <div class="tour-shade" id="tourShadeTop" aria-hidden="true"></div>
+  <div class="tour-shade" id="tourShadeBottom" aria-hidden="true"></div>
+  <div class="tour-shade" id="tourShadeLeft" aria-hidden="true"></div>
+  <div class="tour-shade" id="tourShadeRight" aria-hidden="true"></div>
+  <div class="tour-spotlight" id="tourSpotlight" aria-hidden="true"></div>
+  <section class="tour-card" id="tourCard">
+    <div aria-live="polite" aria-atomic="true">
+      <div class="tour-heading">
+        <h2 class="tour-title" id="tourTitle">Start offline</h2>
+        <span class="tour-progress" id="tourProgress">1 / 4</span>
+      </div>
+      <p class="tour-description" id="tourDescription"></p>
+    </div>
+    <div class="tour-actions">
+      <button type="button" class="btn tour-skip" id="tourSkip">SKIP</button>
+      <div class="tour-nav">
+        <button type="button" class="btn" id="tourBack" disabled>BACK</button>
+        <button type="button" class="btn" id="tourNext">NEXT</button>
+      </div>
+    </div>
+  </section>
+</dialog>
 
 <!-- print-only paper wallet, populated at generation time -->
 <div class="print-only" id="paperWallet"></div>
