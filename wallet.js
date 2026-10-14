@@ -156,6 +156,27 @@
     return out;
   }
 
+  function validateAccount(account) {
+    if (account === undefined) return 0;
+    if (!Number.isSafeInteger(account) || account < 0 || account >= 0x80000000) {
+      throw new Error('account must be an integer from 0 to 2147483647');
+    }
+    return account === 0 ? 0 : account;
+  }
+
+  function parsePathSegment(segment, hardenedOnly) {
+    var match = /^(0|[1-9][0-9]*)('?)$/.exec(segment);
+    // An exact match also excludes the final newline allowed by a regex $.
+    if (!match || match[0] !== segment || (hardenedOnly && !match[2])) {
+      throw new Error('bad path segment: ' + segment);
+    }
+    var index = Number(match[1]);
+    if (!Number.isSafeInteger(index) || index >= 0x80000000) {
+      throw new Error('bad path segment: ' + segment);
+    }
+    return index + (match[2] ? 0x80000000 : 0);
+  }
+
   // path like "m/44'/501'/0'/0'" — ed25519 requires every segment hardened
   async function deriveEd25519Path(seed, path) {
     var segments = path.split('/');
@@ -164,9 +185,7 @@
     var key = I.slice(0, 32);
     var chainCode = I.slice(32);
     for (var i = 1; i < segments.length; i++) {
-      var seg = segments[i];
-      if (!/^\d+'$/.test(seg)) throw new Error('ed25519 derivation requires hardened segments');
-      var index = parseInt(seg.slice(0, -1), 10) + 0x80000000;
+      var index = parsePathSegment(segments[i], true);
       var data = concatBytes(new Uint8Array([0]), key, ser32(index));
       I = await hmacSha512(chainCode, data);
       key = I.slice(0, 32);
@@ -274,11 +293,8 @@
     var key = I.slice(0, 32);
     var chain = I.slice(32);
     for (var i = 1; i < segments.length; i++) {
-      var seg = segments[i];
-      var hardened = /'$/.test(seg);
-      var idx = parseInt(hardened ? seg.slice(0, -1) : seg, 10);
-      if (!(idx >= 0 && idx < 0x80000000)) throw new Error('bad path segment: ' + seg);
-      if (hardened) idx += 0x80000000;
+      var idx = parsePathSegment(segments[i], false);
+      var hardened = idx >= 0x80000000;
       var data = hardened
         ? concatBytes(new Uint8Array([0]), key, ser32(idx))
         : concatBytes(secpPublicKey(key, true), ser32(idx));
@@ -489,7 +505,7 @@
   // chainIds: optional subset like ['sol'] for a single-chain wallet whose
   // phrase is independent of any other wallet. Default is all three.
   async function multichainFromMnemonic(mnemonic, account, passphrase, chainIds) {
-    account = account || 0;
+    account = validateAccount(account);
     var ids = chainIds && chainIds.length ? chainIds : ['sol', 'eth', 'btc'];
     var seed = await mnemonicToSeed(mnemonic, passphrase);
     var chains = {};
@@ -508,6 +524,7 @@
   }
 
   async function generateMultichainWallet(strengthBits, account, chainIds) {
+    account = validateAccount(account);
     var mnemonic = await generateMnemonic(strengthBits);
     return multichainFromMnemonic(mnemonic, account, undefined, chainIds);
   }
@@ -515,7 +532,7 @@
   // ---------------------------------------------------------------- wallet
 
   async function keypairFromMnemonic(mnemonic, account, passphrase) {
-    account = account || 0;
+    account = validateAccount(account);
     var path = "m/44'/501'/" + account + "'/0'";
     var seed = await mnemonicToSeed(mnemonic, passphrase);
     var derived = await deriveEd25519Path(seed, path);
@@ -530,6 +547,7 @@
   }
 
   async function generateWallet(strengthBits, account) {
+    account = validateAccount(account);
     var mnemonic = await generateMnemonic(strengthBits);
     return keypairFromMnemonic(mnemonic, account);
   }

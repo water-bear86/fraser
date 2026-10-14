@@ -24,25 +24,34 @@ const server = http.createServer((req, res) => {
     res.writeHead(405).end();
     return;
   }
-  let urlPath = decodeURIComponent(req.url.split('?')[0]);
-  if (urlPath === '/') urlPath = '/index.html';
-  const filePath = path.normalize(path.join(ROOT, urlPath));
-  if (!filePath.startsWith(ROOT + path.sep) || filePath.includes('node_modules')) {
-    res.writeHead(404).end('not found');
-    return;
-  }
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
+  // Decoding and filesystem argument validation can throw synchronously.
+  try {
+    let urlPath = decodeURIComponent(req.url.split('?')[0]);
+    if (urlPath.includes('\0')) {
+      res.writeHead(400).end('bad request');
+      return;
+    }
+    if (urlPath === '/') urlPath = '/index.html';
+    const filePath = path.normalize(path.join(ROOT, urlPath));
+    if (!filePath.startsWith(ROOT + path.sep) || filePath.includes('node_modules')) {
       res.writeHead(404).end('not found');
       return;
     }
-    res.writeHead(200, {
-      'Content-Type': TYPES[path.extname(filePath)] || 'application/octet-stream',
-      'Cache-Control': 'no-store',
-      'X-Content-Type-Options': 'nosniff',
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(404).end('not found');
+        return;
+      }
+      res.writeHead(200, {
+        'Content-Type': TYPES[path.extname(filePath)] || 'application/octet-stream',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+      });
+      res.end(req.method === 'HEAD' ? undefined : data);
     });
-    res.end(req.method === 'HEAD' ? undefined : data);
-  });
+  } catch {
+    res.writeHead(400).end('bad request');
+  }
 });
 
 server.listen(PORT, '127.0.0.1', () => {
