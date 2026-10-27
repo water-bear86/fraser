@@ -24,18 +24,21 @@
 <style>
   :root {
     color-scheme: dark;
-    --bg: #080e0b;
-    --panel: #0d1711;
-    --input: #090f0b;
-    --fg: #c5d9cc;
-    --hi: #98f5b0;
-    --mid: #a0c2ab;
-    --dim: #8da794;
-    --line: #2b4333;
-    --amber: #f4c77f;
-    --red: #ffaaa0;
-    --bar-bg: #101b14;
-    --qr-bg: #f2f7f2;
+    --bg: #292a27;
+    --panel: #32332f;
+    --input: #252622;
+    --fg: #e6dcc5;
+    --hi: #e6dcc5;
+    --hi-hover: #f1e7d1;
+    --mid: #c8bea8;
+    --dim: #b2aa97;
+    --line: #7d7e73;
+    --sage: #a5b39a;
+    --amber: #dec08b;
+    --red: #e6a79b;
+    --danger-bg: #44332e;
+    --bar-bg: #2c2d29;
+    --qr-bg: #fff;
     --mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", "Courier New", monospace;
   }
   * { box-sizing: border-box; }
@@ -53,7 +56,7 @@
   button { -webkit-tap-highlight-color: transparent; }
   pre { font-family: var(--mono); }
   ::selection { background: var(--hi); color: var(--bg); }
-  :focus-visible { outline: 2px solid var(--hi); outline-offset: 4px; }
+  :focus-visible { outline: 2px solid var(--sage); outline-offset: 4px; }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--line); border: 2px solid var(--bg); }
@@ -88,7 +91,7 @@
   .topbar .right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
   .status-item { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
   #netBadge.online  { color: var(--amber); }
-  #netBadge.offline { color: var(--hi); }
+  #netBadge.offline, #lockBadge.hi { color: var(--sage); }
   .keybar {
     position: fixed; bottom: 0; left: 0; right: 0;
     border-top: 1px solid var(--line); z-index: 100;
@@ -140,8 +143,8 @@
   .pcorner { color: var(--dim); font-size: 12px; white-space: nowrap; }
   .pcorner.amber { color: var(--amber); }
   .pcorner.red { color: var(--red); }
-  .pcorner.hi { color: var(--hi); }
-  .create-panel { border-color: #496c51; }
+  .pcorner.hi { color: var(--sage); }
+  .create-panel { border-color: var(--dim); }
   .workspace .panel { margin-bottom: 0; }
 
   /* Structured rows retain terminal notation without padding-based wrapping. */
@@ -156,7 +159,7 @@
   #boot { min-height: 205px; }
   #genLog:not(:empty) { margin-top: 18px; }
   #genLog .term-line, #verifyOut .term-line { grid-template-columns: 7ch 9ch minmax(0, 1fr); gap: 8px; }
-  pre.term .tag-ok { color: var(--hi); }
+  pre.term .tag-ok { color: var(--sage); }
   pre.term .tag-warn { color: var(--amber); }
   pre.term .tag-fail { color: var(--red); }
   .cursor::after { content: "▊"; color: var(--hi); animation: blink 1.2s steps(1) infinite; }
@@ -173,8 +176,8 @@
   }
   .opt:hover { color: var(--hi); }
   .opt .k { color: var(--dim); }
-  .opt[aria-pressed="true"] { color: var(--hi); background: var(--bar-bg); border-color: var(--line); }
-  .opt[aria-pressed="true"] .k { color: var(--hi); }
+  .opt[aria-pressed="true"] { color: var(--sage); background: var(--bar-bg); border-color: var(--line); }
+  .opt[aria-pressed="true"] .k { color: var(--sage); }
   .stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); background: var(--input); padding: 4px; }
   .stepper button, .btn {
     cursor: pointer; background: transparent; color: var(--fg);
@@ -189,12 +192,12 @@
   .btn.primary {
     display: flex; align-items: center; justify-content: center; gap: 10px;
     width: 100%; min-height: 52px; margin-top: 20px;
-    color: #102518; background: var(--hi); border-color: var(--hi); font-size: 13px;
+    color: var(--bg); background: var(--hi); border-color: var(--hi); font-size: 13px;
     transition: background-color .16s ease-out;
   }
-  .btn.primary:hover { background: #b7f9c8; border-color: #b7f9c8; color: #102518; }
-  .btn.danger { color: var(--red); border-color: #65413c; }
-  .btn.danger:hover { background: #291b18; border-color: var(--red); }
+  .btn.primary:hover { background: var(--hi-hover); border-color: var(--hi-hover); color: var(--bg); }
+  .btn.danger { color: var(--red); border-color: var(--red); }
+  .btn.danger:hover { background: var(--danger-bg); border-color: var(--red); }
   .btn:disabled { opacity: .6; cursor: wait; }
   .btn .k { font-weight: 400; font-size: 12px; }
   .btn.primary .k { margin-left: auto; }
@@ -209,7 +212,7 @@
     font-size: 12px; font-weight: 600; letter-spacing: .06em;
   }
   .chain-tab:hover { color: var(--hi); }
-  .chain-tab[aria-pressed="true"] { color: var(--hi); background: var(--bar-bg); border-color: var(--line); }
+  .chain-tab[aria-pressed="true"] { color: var(--sage); background: var(--bar-bg); border-color: var(--line); }
   .chain-note { margin-left: auto; padding-right: 8px; color: var(--dim); font-size: 12px; }
   .addr-row { display: flex; gap: 10px; align-items: baseline; padding: 2px 0; }
   .addr-row .sym { color: var(--dim); min-width: 4ch; font-size: 12px; }
@@ -248,7 +251,7 @@
   .verify-description { color: var(--dim); max-width: 65ch; font-size: 12px; line-height: 1.8; }
   textarea {
     display: block; width: 100%; min-height: 96px; resize: vertical;
-    background: var(--input); color: var(--fg); caret-color: var(--hi);
+    background: var(--input); color: var(--fg); caret-color: var(--sage);
     border: 1px solid var(--line); padding: 12px; margin-top: 16px; line-height: 1.7;
   }
   textarea::placeholder { color: var(--dim); opacity: 1; font-size: 12px; }
@@ -282,7 +285,7 @@
   }
   .tour[open] { display: block; }
   .tour::backdrop { background: transparent; }
-  .tour-shade { position: absolute; background: rgba(2, 7, 4, .8); pointer-events: none; }
+  .tour-shade { position: absolute; background: rgba(25, 25, 22, .8); pointer-events: none; }
   .tour-spotlight { position: absolute; border: 1px solid var(--hi); pointer-events: none; }
   .tour-card {
     position: absolute; z-index: 1; width: min(360px, calc(100% - 24px));

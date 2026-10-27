@@ -5,16 +5,17 @@
 <title>FRASER og card</title>
 <style>
   :root {
-    --bg: #080e0b;
-    --panel: #0d1711;
-    --fg: #c5d9cc;
-    --hi: #98f5b0;
-    --mid: #a0c2ab;
-    --dim: #8da794;
-    --line: #2b4333;
-    --amber: #f4c77f;
-    --bar-bg: #101b14;
-    --qr-bg: #f2f7f2;
+    --bg: #292a27;
+    --panel: #32332f;
+    --fg: #e6dcc5;
+    --hi: #e6dcc5;
+    --mid: #c8bea8;
+    --dim: #b2aa97;
+    --line: #7d7e73;
+    --sage: #a5b39a;
+    --amber: #dec08b;
+    --bar-bg: #2c2d29;
+    --qr-bg: #fff;
     --mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", "Courier New", monospace;
   }
   * { box-sizing: border-box; margin: 0; }
@@ -28,7 +29,7 @@
   }
   body::after {
     content: ""; position: fixed; inset: 0; pointer-events: none;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 2px, transparent 2px 6px);
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.025) 0 2px, transparent 2px 6px);
   }
   .topbar, .keybar {
     background: var(--bar-bg);
@@ -42,6 +43,7 @@
   .dim { color: var(--dim); }
   .mid { color: var(--mid); }
   .hi { color: var(--hi); }
+  .sage { color: var(--sage); }
   .amber { color: var(--amber); }
   .right { margin-left: auto; }
   .keybar b {
@@ -67,7 +69,7 @@
   }
   .chip .path { display: block; color: var(--dim); font-size: 12px; font-weight: 400; letter-spacing: 0; margin-top: 4px; }
   .checks { margin-top: 28px; font-size: 16px; line-height: 1.9; }
-  .checks .tag { color: var(--hi); font-weight: 600; }
+  .checks .tag { color: var(--sage); font-weight: 600; }
   .qr-side { display: flex; flex-direction: column; align-items: center; gap: 14px; }
   pre.qr {
     line-height: 1; letter-spacing: 0; font-size: 13px;
@@ -84,7 +86,7 @@
   <span class="mid">multichain paper wallet</span>
   <span class="sep">│</span>
   <span class="dim">keys never touch disk or network</span>
-  <span class="right"><span class="dim">NET:</span> <span class="hi">● OFFLINE</span></span>
+  <span class="right"><span class="dim">NET:</span> <span class="sage">● OFFLINE</span></span>
 </div>
 
 <main>
