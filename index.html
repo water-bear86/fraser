@@ -24,20 +24,20 @@
 <style>
   :root {
     color-scheme: dark;
-    --bg: #292a27;
-    --panel: #32332f;
-    --input: #252622;
-    --fg: #e6dcc5;
-    --hi: #e6dcc5;
-    --hi-hover: #f1e7d1;
-    --mid: #c8bea8;
-    --dim: #b2aa97;
-    --line: #7d7e73;
-    --sage: #a5b39a;
-    --amber: #dec08b;
-    --red: #e6a79b;
-    --danger-bg: #44332e;
-    --bar-bg: #2c2d29;
+    --bg: #20211e;
+    --panel: #292b25;
+    --input: #1c1e19;
+    --fg: #f0dfb6;
+    --hi: #f0dfb6;
+    --hi-hover: #f8eacb;
+    --mid: #d3c39e;
+    --dim: #bfb18f;
+    --line: #7d856f;
+    --sage: #b0cf96;
+    --amber: #e7c384;
+    --red: #efa99a;
+    --danger-bg: #3d2b24;
+    --bar-bg: #242620;
     --qr-bg: #fff;
     --mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", "Courier New", monospace;
   }
@@ -45,7 +45,10 @@
   html, body { margin: 0; }
   html { scrollbar-color: var(--line) var(--bg); scroll-padding-block: 24px 72px; }
   body {
-    background: var(--bg);
+    /* Blend the local paper grain into the canvas, beneath opaque UI surfaces. */
+    background: var(--bg) url("assets/charcoal-grain.png") repeat;
+    background-size: 512px 512px;
+    background-blend-mode: overlay;
     color: var(--fg);
     font-family: var(--mono);
     font-size: 14px;
@@ -66,12 +69,6 @@
     white-space: nowrap; border: 0;
   }
 
-  /* Keep the terminal texture light enough to leave text crisp. */
-  body::after {
-    content: ""; position: fixed; inset: 0;
-    pointer-events: none; z-index: 200;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,.025) 0 1px, transparent 1px 4px);
-  }
   .hi { color: var(--hi); }
   .dim { color: var(--dim); }
   .mid { color: var(--mid); }
@@ -285,7 +282,7 @@
   }
   .tour[open] { display: block; }
   .tour::backdrop { background: transparent; }
-  .tour-shade { position: absolute; background: rgba(25, 25, 22, .8); pointer-events: none; }
+  .tour-shade { position: absolute; background: rgba(19, 20, 17, .8); pointer-events: none; }
   .tour-spotlight { position: absolute; border: 1px solid var(--hi); pointer-events: none; }
   .tour-card {
     position: absolute; z-index: 1; width: min(360px, calc(100% - 24px));
@@ -360,7 +357,6 @@
   /* ------------------------------- paper wallet print layout (paper stays paper) */
   @media print {
     body { background: #fff; color: #000; color-scheme: light; padding: 0; }
-    body::after { display: none; }
     .topbar, .keybar, main, .tour { display: none !important; }
     html.tour-active { overflow: visible; }
     .print-only { display: block !important; }

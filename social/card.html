@@ -5,31 +5,29 @@
 <title>FRASER og card</title>
 <style>
   :root {
-    --bg: #292a27;
-    --panel: #32332f;
-    --fg: #e6dcc5;
-    --hi: #e6dcc5;
-    --mid: #c8bea8;
-    --dim: #b2aa97;
-    --line: #7d7e73;
-    --sage: #a5b39a;
-    --amber: #dec08b;
-    --bar-bg: #2c2d29;
+    --bg: #20211e;
+    --panel: #292b25;
+    --fg: #f0dfb6;
+    --hi: #f0dfb6;
+    --mid: #d3c39e;
+    --dim: #bfb18f;
+    --line: #7d856f;
+    --sage: #b0cf96;
+    --amber: #e7c384;
+    --bar-bg: #242620;
     --qr-bg: #fff;
     --mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", "Courier New", monospace;
   }
   * { box-sizing: border-box; margin: 0; }
   html, body { width: 1200px; height: 630px; overflow: hidden; }
   body {
-    background: var(--bg);
+    background: var(--bg) url("../assets/charcoal-grain.png") repeat;
+    background-size: 512px 512px;
+    background-blend-mode: overlay;
     color: var(--fg);
     font-family: var(--mono);
     display: flex;
     flex-direction: column;
-  }
-  body::after {
-    content: ""; position: fixed; inset: 0; pointer-events: none;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,.025) 0 2px, transparent 2px 6px);
   }
   .topbar, .keybar {
     background: var(--bar-bg);
