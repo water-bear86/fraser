@@ -109,8 +109,28 @@
     gap: 28px; margin-bottom: 32px;
   }
   pre.banner {
-    margin: 0; color: var(--hi); white-space: pre;
+    margin: 0; width: max-content; color: #f8eacb; white-space: pre;
     font-size: clamp(8px, 2.55vw, 16px); line-height: 1.13;
+    filter: drop-shadow(0 .04em .06em rgba(255, 233, 183, .65))
+            drop-shadow(0 .12em .45em rgba(237, 190, 102, .35));
+  }
+  /* A molded diffuser in the glyphs, with warm light spilling behind it. */
+  @supports ((background-clip: text) or (-webkit-background-clip: text)) {
+    pre.banner {
+      background-color: #f8eacb;
+      background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%228%22%20height%3D%228%22%20viewBox%3D%220%200%208%208%22%3E%3Cpath%20d%3D%22M0%204%204%200%208%204%204%208Z%22%20fill%3D%22none%22%20stroke%3D%22%23765b35%22%20stroke-opacity%3D%22.28%22%20stroke-width%3D%22.65%22%2F%3E%3Cpath%20d%3D%22M.7%204%204%20.7%207.3%204%22%20fill%3D%22none%22%20stroke%3D%22%23fff9e9%22%20stroke-opacity%3D%22.7%22%20stroke-width%3D%22.6%22%2F%3E%3Ccircle%20cx%3D%223%22%20cy%3D%222.7%22%20r%3D%22.7%22%20fill%3D%22%23fffdf2%22%20fill-opacity%3D%22.6%22%2F%3E%3C%2Fsvg%3E");
+      background-size: .32em .32em;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+  @media (forced-colors: active) {
+    pre.banner {
+      background: none; color: CanvasText;
+      -webkit-text-fill-color: currentColor; filter: none;
+    }
   }
   .brand-lockup { min-width: 0; max-width: 100%; }
   .brand-definition { margin: 12px 0 0; color: var(--mid); font-size: 12px; line-height: 1.6; }
