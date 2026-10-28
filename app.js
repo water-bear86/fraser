@@ -639,50 +639,6 @@
   window.addEventListener('scroll', queueTourPosition, true);
   window.addEventListener('beforeprint', endTour);
 
-  // ------------------------------------------------------ wordmark parallax
-  function initBannerParallax() {
-    var stage = document.querySelector('.brand-lockup');
-    var banner = stage && stage.querySelector('pre.banner');
-    if (!banner) return;
-    var enabled = window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 901px) and (prefers-reduced-motion: no-preference) and (forced-colors: none)');
-    var frame = 0;
-    var pointerX = 0;
-    var pointerY = 0;
-
-    function reset() {
-      if (frame) cancelAnimationFrame(frame);
-      frame = 0;
-      stage.style.removeProperty('--banner-pitch');
-      stage.style.removeProperty('--banner-yaw');
-    }
-
-    function paint() {
-      frame = 0;
-      if (!enabled.matches || document.hidden || tourDialog.open) { reset(); return; }
-      var rect = stage.getBoundingClientRect();
-      if (!rect.width || !rect.height) { reset(); return; }
-      var x = Math.max(0, Math.min(1, (pointerX - rect.left) / rect.width));
-      var y = Math.max(0, Math.min(1, (pointerY - rect.top) / rect.height));
-      stage.style.setProperty('--banner-pitch', ((.5 - y) * 8).toFixed(2) + 'deg');
-      stage.style.setProperty('--banner-yaw', ((x - .5) * 8).toFixed(2) + 'deg');
-    }
-
-    // Pointer batches schedule one frame; the wordmark never runs an idle loop.
-    stage.addEventListener('pointermove', function (event) {
-      if (event.pointerType !== 'mouse' || !enabled.matches) { reset(); return; }
-      pointerX = event.clientX;
-      pointerY = event.clientY;
-      if (!frame) frame = requestAnimationFrame(paint);
-    }, { passive: true });
-    stage.addEventListener('pointerleave', reset);
-    stage.addEventListener('pointercancel', reset);
-    if (typeof enabled.addEventListener === 'function') enabled.addEventListener('change', reset);
-    window.addEventListener('blur', reset);
-    window.addEventListener('resize', reset);
-    window.addEventListener('scroll', reset, { passive: true });
-    document.addEventListener('visibilitychange', reset);
-  }
-
   // --------------------------------------------------------------- hotkeys
   document.addEventListener('keydown', function (e) {
     if (tourDialog.open) return;
@@ -705,7 +661,6 @@
     }
   });
 
-  initBannerParallax();
   updateNetBadge();
   boot();
   startTour();
