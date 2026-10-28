@@ -57,14 +57,19 @@
   .lockup { flex: 1; min-width: 0; }
   pre.banner {
     width: max-content; color: #f8eacb; font-size: 24px; line-height: 1.12; font-weight: 400;
-    --banner-cobalt: #2446ff;
-    /* Flat colour planes: ivory face and a saturated cobalt reference. */
-    filter: drop-shadow(.1em 0 0 var(--banner-cobalt))
-            drop-shadow(-.1em 0 0 var(--banner-cobalt))
-            drop-shadow(0 .1em 0 var(--banner-cobalt))
-            drop-shadow(0 -.1em 0 var(--banner-cobalt));
+    filter: drop-shadow(0 -.025em .02em rgba(255, 249, 224, .7))
+            drop-shadow(.03em .05em 0 #d2bb83)
+            drop-shadow(.04em .07em 0 #a58a56)
+            drop-shadow(.055em .09em 0 #78603a)
+            drop-shadow(.07em .12em 0 #473b28)
+            drop-shadow(.08em .18em .12em rgba(0, 0, 0, .8))
+            drop-shadow(.15em .45em .35em rgba(0, 0, 0, .65));
+    transform-origin: center;
+    transform: perspective(70em) translateZ(1.4em)
+               rotateX(calc(12deg + var(--banner-pitch, 0deg)))
+               rotateY(calc(-5deg + var(--banner-yaw, 0deg))) rotateZ(-1deg);
   }
-  /* Keep the molded diffuser inside the ivory face. */
+  /* A molded diffuser in the glyphs, with warm light spilling behind it. */
   @supports ((background-clip: text) or (-webkit-background-clip: text)) {
     pre.banner {
       background-color: #f8eacb;
@@ -79,10 +84,10 @@
   @media (forced-colors: active) {
     pre.banner {
       background: none; color: CanvasText;
-      -webkit-text-fill-color: currentColor; filter: none;
+      -webkit-text-fill-color: currentColor; filter: none; transform: none;
     }
   }
-  .definition { color: var(--mid); font-size: 19px; margin-top: 18px; letter-spacing: .02em; }
+  .definition { color: var(--mid); font-size: 19px; margin-top: 30px; letter-spacing: .02em; }
   .tagline { color: var(--fg); font-size: 27px; font-weight: 600; margin-top: 14px; }
   .chains { display: flex; gap: 12px; margin-top: 26px; }
   .chip {
