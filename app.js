@@ -20,7 +20,8 @@
 
   function $(id) { return document.getElementById(id); }
   function esc(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
   // ------------------------------------------------------------ term output
   // Separate columns let diagnostic details wrap without splitting labels.

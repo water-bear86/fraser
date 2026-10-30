@@ -70,6 +70,7 @@ function prepareRelease(tag, output) {
     'folder, then open index.html or use the optional loopback server. Read GUIDE.md first.', '',
     'This release adds security and release policies, CI/CodeQL checks, vendored-file',
     'digests, retained third-party notices, and verified-download instructions.',
+    'HTML escaping also encodes both quote characters for safe reuse in attributes.',
     'The existing application UI, cryptography and runtime dependencies are preserved.', '',
     'Passing checks and release verification are not an independent cryptographic audit.',
     'No real recovery phrase, funded transaction, or physical printer-memory test is used.', '',
