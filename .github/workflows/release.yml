@@ -1,0 +1,81 @@
+name: Prepare release
+'on':
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    name: Release checks
+    if: github.repository == 'water-bear86/fraser'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - run: node --test --test-reporter=spec tests/*.test.cjs
+  draft:
+    name: Package draft
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      checks: read
+      security-events: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Require successful security checks on the exact source commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          node <<'NODE'
+          const {execFileSync} = require('node:child_process');
+          const api = resource => JSON.parse(execFileSync('gh', ['api', resource], {encoding:'utf8'}));
+          const repo = process.env.GITHUB_REPOSITORY;
+          const commit = process.env.RELEASE_COMMIT;
+          const checks = api('repos/' + repo + '/commits/' + commit + '/check-runs?per_page=100').check_runs;
+          for (const name of ['Tests', 'CodeQL']) {
+            const check = checks.find(item => item.name === name && item.app.id === 15368);
+            if (!check || check.head_sha !== commit || check.status !== 'completed' || check.conclusion !== 'success') {
+              throw new Error('Required security check has not passed: ' + name);
+            }
+          }
+          const alerts = api('repos/' + repo + '/code-scanning/alerts?state=open&ref=refs%2Fheads%2Fmain&per_page=1');
+          if (alerts.length) throw new Error('Open code-scanning alerts need review before release');
+          NODE
+      - name: Package the exact version tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          node scripts/release.cjs "$RELEASE_TAG"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const metadata = JSON.parse(fs.readFileSync('dist/RELEASE.json', 'utf8'));
+          if (metadata.commit !== process.env.RELEASE_COMMIT) throw new Error('Tag moved during packaging');
+          fs.appendFileSync('dist/RELEASE_NOTES.md', '\nValidation: all release tests passed. Source Tests and CodeQL checks passed for this commit.\n\nWorkflow: ' + process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID + '\n');
+          NODE
+      - name: Create draft with the complete asset set
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" "dist/fraser-$RELEASE_TAG.zip" dist/SHA256SUMS dist/RELEASE.json \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --draft \
+            --title "FRASER $RELEASE_TAG" --notes-file dist/RELEASE_NOTES.md

@@ -5,11 +5,43 @@
 *Generate. Print. Fold.*
 
 FRASER generates paper wallets for **Solana, Ethereum/EVM, and Bitcoin**
-from one secret phrase, **entirely in the browser**. Nothing is ever
-written to disk, stored, or transmitted.
+from one secret phrase, **entirely in the browser**. The application keeps
+wallet material in page memory and does not intentionally persist or transmit it.
 
 New to cold storage? Start with the **[user guide](GUIDE.md)**: offline
 setup, funding, getting back out, cleanup, and how many copies to make.
+
+## Download and verify
+
+Get the attached **fraser-v1.0.0.zip** and **SHA256SUMS** from
+[GitHub Releases](https://github.com/water-bear86/fraser/releases).
+Use those named assets; GitHub's automatic "Source code" archives are different
+files and will not match this checksum.
+
+Put both files in the same directory and check the ZIP before extracting:
+
+```sh
+# macOS
+shasum -a 256 -c SHA256SUMS
+
+# Linux
+sha256sum --check SHA256SUMS
+```
+
+On Windows, run `Get-FileHash .\fraser-v1.0.0.zip -Algorithm SHA256` in
+PowerShell and compare its complete digest with `SHA256SUMS`. Stop if it differs.
+Copy both files to the offline machine and verify again before extracting.
+
+For the published immutable release, GitHub CLI can also verify the release
+and that the local ZIP is its authentic attached asset:
+
+```sh
+gh release verify v1.0.0 --repo water-bear86/fraser
+gh release verify-asset v1.0.0 fraser-v1.0.0.zip --repo water-bear86/fraser
+```
+
+A checksum needs a trusted expected value. Signed release verification adds
+origin verification; neither check is an independent cryptographic audit.
 
 ## Run it
 
@@ -25,8 +57,8 @@ machine.
 
 - Generates a BIP-39 secret phrase (24 or 12 words) from
   `crypto.getRandomValues` (the OS CSPRNG).
-- Derives three chains from that one phrase, at the standard paths every
-  major wallet uses, so it restores anywhere:
+- Derives three chains from that one phrase at these standard paths.
+  When restoring, select a wallet that supports the printed path and account:
   - **SOL**: SLIP-0010 ed25519 at `m/44'/501'/n'/0'` (Phantom, Solflare)
   - **ETH/EVM**: BIP-32 secp256k1 at `m/44'/60'/0'/0/n` (MetaMask, Rabby),
     EIP-55 checksummed
@@ -44,28 +76,44 @@ machine.
 - "Verify a phrase" re-derives all three addresses from a written-down
   phrase to confirm a printed wallet before funding it.
 
-## Why keys can't leak
+## Security model and limits
 
-- **No persistence**: no localStorage, no cookies, no IndexedDB, no files.
-  Keys exist only in page memory; "Clear" reloads the page.
-- **No network**: the page ships a Content-Security-Policy with
-  `connect-src 'none'`, so the browser itself refuses to transmit anything.
-  The page probes this live at boot. The server is loopback-only, static,
-  GET-only, and logs nothing.
+- **Application state stays in memory**: no wallet writes to localStorage,
+  cookies, IndexedDB, or downloaded files. "Clear" reloads the page. Browser
+  memory, operating-system swap/crash dumps, and printer spooling remain outside
+  this application's control. Redaction hides the screen; print markup still
+  contains the phrase, and JavaScript cannot guarantee memory zeroization.
+- **Local operation**: runtime scripts and assets are bundled. The CSP includes
+  `connect-src 'none'` and is probed at boot. This is one defense layer, not a
+  guarantee against malicious replacement code or a compromised browser.
+  The optional server is static, loopback-only, GET/HEAD-only, and logs no requests.
+  The hosted page is online; actual air-gapped use requires disconnecting the
+  machine and using the verified download.
 - **No build step, no dependencies to audit at install time**: the only
   vendored code is `tweetnacl` (public domain), `qrcode-generator` and
   `js-sha3` (MIT), and the standard BIP-39 English wordlist, all pinned in
   `vendor/`. secp256k1, BIP-32, RIPEMD-160, bech32, and WIF are implemented
-  in `wallet.js` itself and cross-checked (below).
+  in `wallet.js` itself. See [third-party notices](THIRD_PARTY_NOTICES.md)
+  for licenses and upstream versions, and `vendor/SHA256SUMS` for the pinned bytes.
+
+Read [SECURITY.md](SECURITY.md) for the threat model, reporting channel, and
+security invariants. Report vulnerabilities
+[privately](https://github.com/water-bear86/fraser/security/advisories/new),
+using public test vectors or disposable wallets. Never send a real phrase or key.
 
 ## Correctness
 
-`wallet.js` runs identically in Node and the browser. Every chain's
-derivation is cross-checked against the established ecosystem libraries:
-`ethers` (ETH), `@scure/bip32` + `@noble/hashes` + `bech32` + `bs58check`
-(BTC), and `bip39` + `ed25519-hd-key` + `tweetnacl` + `bs58` (SOL), over
-randomized phrases and accounts plus the published test vectors. The
-standard `abandon … about` phrase derives:
+The committed tests check published chain addresses and SLIP-0010 vectors,
+account/path validation, chain subsets, generation, server resilience, CSP and
+vendored-file integrity, and release packaging. They run without installing
+packages, using Node.js 24+, Git, and `unzip`:
+
+```sh
+node --test --test-reporter=spec tests/*.test.cjs
+```
+
+For the public 12-word test vector (eleven `abandon` words followed by `about`),
+account zero derives these addresses. **Never fund this public test wallet.**
 
 | chain | address |
 |-------|---------|
@@ -73,8 +121,9 @@ standard `abandon … about` phrase derives:
 | ETH | `0x9858EfFD232B4033E47d90003D41EC34EcaEda94` |
 | BTC | `bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu` (BIP-84 official vector) |
 
-Type that phrase into "Verify a phrase" and the page must show exactly
-these addresses; anything else means a corrupted copy.
+At account zero, "Verify a phrase" must show these addresses for that exact
+test vector. A mismatch needs investigation before using the copy. Passing
+these checks is not an independent security or cryptographic audit.
 
 ## Files
 
@@ -89,6 +138,10 @@ these addresses; anything else means a corrupted copy.
 | `vendor/qrcode.js`       | qrcode-generator 1.4.4 (MIT)               |
 | `vendor/sha3.min.js`     | js-sha3 0.8.0 (MIT), keccak-256 for ETH    |
 | `vendor/english.js(.json)`| BIP-39 English wordlist (2048 words)      |
+| `vendor/SHA256SUMS`      | reviewed hashes of bundled third-party files |
+| `SECURITY.md`           | security model and private reporting policy |
+| `RELEASING.md`          | maintainer release and verification procedure |
+| `scripts/release.cjs`   | tagged-source ZIP and SHA-256 packaging     |
 
 ## License
 

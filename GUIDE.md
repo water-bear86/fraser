@@ -7,10 +7,17 @@ why-and-how belongs to the docs section.
 
 ## 1. Set up air-gapped
 
-1. On your everyday machine, get FRASER: **Code → Download ZIP** at
-   [github.com/water-bear86/fraser](https://github.com/water-bear86/fraser),
-   or `git clone`.
-2. Copy the whole folder to a USB stick.
+1. On your everyday machine, download the attached **fraser-v1.0.0.zip** and
+   **SHA256SUMS** from [FRASER Releases](https://github.com/water-bear86/fraser/releases).
+   GitHub's automatic "Source code" ZIP is a different archive.
+   Verify the named ZIP before extracting it: on macOS use
+   `shasum -a 256 -c SHA256SUMS`; on Linux use `sha256sum --check SHA256SUMS`.
+   On Windows use `Get-FileHash .\fraser-v1.0.0.zip -Algorithm SHA256` in PowerShell
+   and compare the complete digest with `SHA256SUMS`. Stop on any mismatch.
+   The README also documents signed GitHub release verification, which you can
+   perform online before moving to the offline machine.
+2. Copy both the ZIP and checksum file to a USB stick. Verify the ZIP again on
+   the offline machine, then extract the complete folder there.
 3. Move to the machine that will do the generating.
    - Best: a machine that is not online and never will be again. An old
      laptop with WiFi off, ideally running a live-booted Linux from USB,
