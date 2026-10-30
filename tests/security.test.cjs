@@ -26,24 +26,38 @@ test('wallet CSP retains the reviewed offline boundaries', () => {
   assert.deepEqual(actual, expected);
 });
 
-test('runtime scripts are the reviewed local files, without inline executable code', () => {
-  const scripts = Array.from(html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi));
-  assert.deepEqual(scripts.map(match => attributes(match[1]).src), [
+function verifyRuntimeScripts(input) {
+  let remaining = input;
+  for (const source of [
     'vendor/nacl-fast.min.js', 'vendor/sha3.min.js', 'vendor/qrcode.js',
     'vendor/english.js', 'wallet.js', 'app.js'
-  ]);
-  for (const script of scripts) {
-    assert.equal(script[2].trim(), '');
-    const source = attributes(script[1]).src;
+  ]) {
+    // Accept only reviewed declarations; malformed browser-tolerated tags fail closed.
+    const declaration = '<script src="' + source + '"></script>';
+    assert.equal(remaining.split(declaration).length - 1, 1, source);
+    remaining = remaining.replace(declaration, '');
     assert.ok(fs.statSync(path.join(root, source)).isFile());
     assert.equal(fs.realpathSync(path.join(root, source)), path.join(fs.realpathSync(root), source));
   }
+  assert.ok(!/<\/?script\b/i.test(remaining), 'unreviewed script markup');
+}
+
+test('runtime scripts are the reviewed local files, without inline executable code', () => {
+  verifyRuntimeScripts(html);
   for (const match of html.matchAll(/url\((?:"([^"]*)"|'([^']*)'|([^)]*))\)/g)) {
     const url = (match[1] ?? match[2] ?? match[3]).trim();
     if (url.startsWith('data:image/svg+xml,')) continue;
     assert.equal(url, 'assets/charcoal-grain.png', 'new runtime assets need an explicit review');
     assert.ok(fs.statSync(path.join(root, url)).isFile());
   }
+});
+
+test('script guard rejects malformed endings, duplicate declarations and added inline code', () => {
+  for (const ending of ['</script foo>', '</script\t\n bar>', '</SCRIPT/>']) {
+    assert.throws(() => verifyRuntimeScripts(html.replace('</script>', ending)));
+  }
+  assert.throws(() => verifyRuntimeScripts(html + '<script src="app.js"></script>'));
+  assert.throws(() => verifyRuntimeScripts(html + '<script>alert("public test fixture")</script>'));
 });
 
 test('vendored runtime files match the complete reviewed SHA-256 lock', () => {

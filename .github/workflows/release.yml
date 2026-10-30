@@ -44,6 +44,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_COMMIT: ${{ github.sha }}
         run: |
+          git merge-base --is-ancestor "$RELEASE_COMMIT" refs/remotes/origin/main
           node <<'NODE'
           const {execFileSync} = require('node:child_process');
           const api = resource => JSON.parse(execFileSync('gh', ['api', resource], {encoding:'utf8'}));
