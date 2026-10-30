@@ -5,12 +5,23 @@ const { test } = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
+const vm = require('node:vm');
 
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 function attributes(tag) {
   return Object.fromEntries(Array.from(tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g), match => [match[1].toLowerCase(), match[2] ?? match[3]]));
 }
+
+test('the application encoder protects text and quoted attributes', () => {
+  const source = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+  const match = /function esc\(s\) \{([\s\S]*?)\n  \}/.exec(source);
+  assert.ok(match, 'test the actual application encoder');
+  const encode = vm.runInNewContext('(function(s) {' + match[1] + '\n})', {}, { timeout: 1000 });
+  assert.equal(encode('&<>"\''), '&amp;&lt;&gt;&quot;&#39;');
+  assert.equal(encode('" onfocus="public fixture'), '&quot; onfocus=&quot;public fixture');
+  for (const chain of ['sol', 'eth', 'btc']) assert.equal(encode(chain), chain);
+});
 
 test('wallet CSP retains the reviewed offline boundaries', () => {
   const policies = Array.from(html.matchAll(/<meta\b[^>]*>/gi), match => attributes(match[0])).filter(attrs => attrs['http-equiv']?.toLowerCase() === 'content-security-policy');
